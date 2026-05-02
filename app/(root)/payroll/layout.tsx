@@ -5,11 +5,11 @@ import TopBar from "@/components/TopBar";
 import EmVoice from "@/components/EmVoice";
 import { RoleGuard } from "@/components/auth/AuthContext";
 
-export default function EmployeeLayout({ children }: { children: React.ReactNode }) {
+export default function PayrollLayout({ children }: { children: React.ReactNode }) {
   return (
-    <RoleGuard segment="employee">
+    <RoleGuard segment="payroll">
       <div className="flex h-screen overflow-hidden">
-        <Sidebar role="employee" />
+        <Sidebar role="payroll" />
         <main className="flex-1 flex flex-col overflow-hidden">
           <TopBar />
           <div className="flex-1 overflow-y-auto relative">

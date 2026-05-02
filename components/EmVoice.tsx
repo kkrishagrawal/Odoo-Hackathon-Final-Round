@@ -546,6 +546,40 @@ export default function EmVoice() {
             toast.error(msg.error?.message || "Realtime API error");
             break;
 
+          case "response.function_call_arguments.done":
+            console.log("[EmVoice] Function call done:", msg.name, msg.arguments);
+            if (msg.name === "generate_hr_ticket") {
+              try {
+                const args = JSON.parse(msg.arguments);
+                
+                fetch("/api/tickets", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(args)
+                }).then(async (res) => {
+                  const data = await res.json();
+                  const resultText = res.ok ? `Successfully generated ticket. ID: ${data.id}` : `Failed to generate ticket: ${data.error}`;
+                  
+                  if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                      type: "conversation.item.create",
+                      item: {
+                        type: "function_call_output",
+                        call_id: msg.call_id,
+                        output: resultText
+                      }
+                    }));
+                    ws.send(JSON.stringify({
+                      type: "response.create"
+                    }));
+                  }
+                });
+              } catch (e) {
+                console.error("[EmVoice] Failed to parse function args", e);
+              }
+            }
+            break;
+
           default:
             break;
         }
