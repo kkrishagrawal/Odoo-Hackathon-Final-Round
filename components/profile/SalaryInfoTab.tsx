@@ -20,9 +20,6 @@ const DEFAULTS: Omit<SalaryInfoData, "userId"> = {
     standardAllowance: 0,
     bonusPct: 8.33,
     ltaPct: 8.33,
-    pfEmployeePct: 12,
-    pfEmployerPct: 12,
-    professionalTax: 200,
 };
 
 function round2(n: number) {
@@ -54,7 +51,8 @@ function BreakdownRow({
                     }`}
             />
             {showPercent ? (
-                <input value={`${percent ?? 0}%`} readOnly
+                <input value={`${Number(percent ?? 0).toFixed(2)}%`}
+                    readOnly
                     className="border rounded px-2 py-1 bg-muted text-sm text-right" />
             ) : <div />}
         </div>
@@ -84,6 +82,7 @@ export function SalaryInfoTab({ userId, canEdit }: Props) {
         const basic = round2((wage * form.basicSalaryPct) / 100);
         const hra = round2((basic * form.hraPct) / 100);
         const stdAllowance = round2(form.standardAllowance);
+        const stdAllowancePct = (stdAllowance / wage) * 100;
         const bonus = round2((basic * form.bonusPct) / 100);
         const lta = round2((basic * form.ltaPct) / 100);
         const maxStdAllowance =
@@ -97,12 +96,12 @@ export function SalaryInfoTab({ userId, canEdit }: Props) {
         const pfEmployee = round2((basic * config.pfEmployeePct) / 100);
         const pfEmployer = round2((basic * config.pfEmployerPct) / 100);
         const professionalTax = config.professionalTax;
-        const totalDeductions = round2(pfEmployee + professionalTax);
+        const totalDeductions = round2(pfEmployee + pfEmployer + professionalTax);
 
         const netWage = round2(grossWage - totalDeductions);
         return {
             basic, hra, stdAllowance, bonus, lta, fixedAllowance, fixedAllowancePct,
-            grossWage, pfEmployee, pfEmployer, professionalTax,
+            grossWage, pfEmployee, pfEmployer, professionalTax, stdAllowancePct,
             totalDeductions, netWage, maxStdAllowance,
             yearlyWage: round2(wage * 12),
         };
@@ -234,15 +233,19 @@ export function SalaryInfoTab({ userId, canEdit }: Props) {
                             <BreakdownRow
                                 label="Standard Allowance"
                                 value={computed.stdAllowance}
-                                percent={undefined}
-                                showPercent={false}
+                                percent={computed.stdAllowancePct}
                                 editable={isEditing}
                                 onEdit={(v) => set("standardAllowance", v)}
                             />
                             {isInvalidStdAllowance && (
-                                <p className="text-xs text-red-500">Cannot exceed ₹ {computed.maxStdAllowance.toLocaleString("en-IN")}</p>
+                                <p className="text-xs text-red-500 text-right">Standard Allowance cannot exceed ₹ {computed.maxStdAllowance.toLocaleString("en-IN")}</p>
                             )
                             }
+                            <BreakdownRow
+                                label="Fixed Allowance"
+                                value={computed.fixedAllowance}
+                                percent={computed.fixedAllowancePct}
+                            />
                         </div>
                     </div>
                 </Section>
@@ -264,7 +267,7 @@ export function SalaryInfoTab({ userId, canEdit }: Props) {
                         <div className="col-span-2 border-t border-outline-variant/20 pt-4 space-y-2">
                             <div className="flex items-center justify-between">
                                 <span className="text-sm text-on-surface-variant">Total Deductions</span>
-                                <span className="text-sm text-destructive font-medium">− {formatINR(computed.totalDeductions)}</span>
+                                <span className="text-sm text-destructive font-medium">- {formatINR(computed.totalDeductions)}</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-sm font-bold text-on-surface">Net Monthly Wage</span>

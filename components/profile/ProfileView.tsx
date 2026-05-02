@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useState, useRef, useEffect, useTransition } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth, AuthUser } from "@/components/auth/AuthContext";
 import { requestPasswordReset, changePasswordDirect } from "@/app/actions/security";
 import { Eye, EyeOff } from "lucide-react";

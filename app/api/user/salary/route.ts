@@ -2,7 +2,7 @@
 // PUT  /api/user/salary              → upsert salary info for a user
 //      body: { userId, monthlyWage, workingDaysPerWeek, breakTimeHrs,
 //              basicSalaryPct, hraPct, standardAllowance, bonusPct, ltaPct,
-//              pfEmployeePct, pfEmployerPct, professionalTax }
+//            }
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -42,9 +42,6 @@ export async function PUT(req: NextRequest) {
     standardAllowance:  parseFloat(fields.standardAllowance)  || 0,
     bonusPct:           parseFloat(fields.bonusPct)           || 8.33,
     ltaPct:             parseFloat(fields.ltaPct)             || 8.33,
-    pfEmployeePct:      parseFloat(fields.pfEmployeePct)      || 12,
-    pfEmployerPct:      parseFloat(fields.pfEmployerPct)      || 12,
-    professionalTax:    parseFloat(fields.professionalTax)    || 200,
   };
 
   const salaryInfo = await prisma.salaryInfo.upsert({
