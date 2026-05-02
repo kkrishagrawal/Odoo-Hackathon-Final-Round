@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useCompanyLogo } from "@/components/company-logo-provider";
 import { useAuth, getRolePath } from "@/components/auth/AuthContext";
 import { login } from "../actions";
+import { toast } from "sonner";
 
 /** Map role to its dashboard route */
 function getDashboardRoute(role: string): string {
@@ -30,12 +31,10 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const { logoUrl } = useCompanyLogo();
   const { setUser, refreshUser } = useAuth();
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setError(null);
     setLoading(true);
 
     const form = e.currentTarget;
@@ -46,12 +45,14 @@ export default function LoginPage() {
     setLoading(false);
 
     if (!result.success) {
-      setError(result.error ?? "Login failed.");
+      toast.error(result.error ?? "Login failed.");
       return;
     }
 
     // Fetch full user data from server and store in context + localStorage
     await refreshUser();
+
+    toast.success("Login successful!");
 
     // Redirect based on role
     const route = getDashboardRoute(result.role!);
@@ -72,11 +73,6 @@ export default function LoginPage() {
         </div>
 
         <form className="space-y-5 w-full" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-md px-4 py-2.5 text-sm font-medium">
-              {error}
-            </div>
-          )}
 
           <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-[150px_minmax(0,1fr)] sm:items-center sm:gap-4 font-medium">
             <label htmlFor="loginId" className="text-left sm:text-right text-on-surface-variant">

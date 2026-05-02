@@ -96,3 +96,41 @@ export async function resetPassword(formData: FormData) {
     return { success: false, error: "Something went wrong" };
   }
 }
+
+/**
+ * Direct password change for non-admin roles (HR, Employee, Payroll).
+ * Updates the password in the database immediately without a reset token.
+ */
+export async function changePasswordDirect(newPassword: string, confirmPassword: string) {
+  try {
+    const userId = await getSession();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    if (!newPassword || !confirmPassword) {
+      return { success: false, error: "All fields are required" };
+    }
+
+    if (newPassword !== confirmPassword) {
+      return { success: false, error: "Passwords do not match" };
+    }
+
+    if (newPassword.length < 6) {
+      return { success: false, error: "Password must be at least 6 characters" };
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return { success: false, error: "User not found" };
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+
+    return { success: true };
+  } catch (err) {
+    console.error("Direct password change error:", err);
+    return { success: false, error: "Something went wrong" };
+  }
+}

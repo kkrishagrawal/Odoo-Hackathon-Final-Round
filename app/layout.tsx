@@ -7,6 +7,7 @@ import { AttendanceProvider } from "@/components/attendance/AttendanceContext";
 import { TimeOffProvider } from "@/components/timeoff/TimeOffContext";
 import { AuthProvider } from "@/components/auth/AuthContext";
 import { QueryProvider } from "@/components/QueryProvider";
+import { Toaster } from "@/components/ui/sonner";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -49,6 +50,7 @@ export default function RootLayout({
           </AuthProvider>
           </CompanyLogoProvider>
         </QueryProvider>
+        <Toaster position="top-right" />
       </body>
     </html>
   );

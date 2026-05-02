@@ -10,6 +10,7 @@ import { CldUploadWidget } from "next-cloudinary";
 import { useCompanyLogo } from "@/components/company-logo-provider";
 import { useAuth } from "@/components/auth/AuthContext";
 import { signup } from "../actions";
+import { toast } from "sonner";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -17,7 +18,6 @@ export default function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { logoUrl, setLogoUrl } = useCompanyLogo();
   const { refreshUser } = useAuth();
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [successInfo, setSuccessInfo] = useState<{
     loginId: string;
@@ -25,7 +25,6 @@ export default function SignupPage() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setError(null);
     setLoading(true);
 
     const form = e.currentTarget;
@@ -41,12 +40,13 @@ export default function SignupPage() {
     setLoading(false);
 
     if (!result.success) {
-      setError(result.error ?? "Signup failed.");
+      toast.error(result.error ?? "Signup failed.");
       return;
     }
 
     // Show the generated Login ID before redirecting
     setSuccessInfo({ loginId: result.loginId! });
+    toast.success("Signup successful!");
 
     // Fetch full user data to populate AuthContext + localStorage
     await refreshUser();
@@ -118,11 +118,6 @@ export default function SignupPage() {
         </div>
 
         <form className="space-y-6 w-full" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-md px-4 py-2.5 text-sm font-medium">
-              {error}
-            </div>
-          )}
 
           <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-[180px_minmax(0,1fr)_40px] sm:items-center sm:gap-4 font-medium">
             <label htmlFor="companyName" className="text-left sm:text-right text-on-surface-variant whitespace-nowrap">

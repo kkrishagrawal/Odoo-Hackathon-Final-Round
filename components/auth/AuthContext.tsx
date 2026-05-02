@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 // Mirrors the Prisma user shape (without password)
 export interface AuthUser {
@@ -108,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // silent
     }
     setUser(null);
+    toast.info("Logged out successfully.");
     router.push("/login");
   }, [setUser, router]);
 
@@ -156,6 +158,73 @@ export function useAuth() {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
+}
+
+// ─── Role-based route protection ────────────────────────────────────────────
+
+/** Maps a route segment (e.g. "admin") to the required Prisma role */
+const ROLE_ROUTE_MAP: Record<string, AuthUser["role"]> = {
+  admin: "ADMIN",
+  hr: "HR_OFFICER",
+  payroll: "PAYROLL_OFFICER",
+  employee: "EMPLOYEE",
+};
+
+interface RoleGuardProps {
+  /** The route segment this guard protects, e.g. "admin" */
+  segment: keyof typeof ROLE_ROUTE_MAP;
+  children: ReactNode;
+}
+
+/**
+ * Client component that wraps role-specific layouts.
+ * - While auth is loading → shows a subtle loading skeleton.
+ * - If user is not logged in → redirects to /login.
+ * - If user's role doesn't match the route segment → redirects to their own dashboard + shows error toast.
+ * - Otherwise → renders children normally.
+ */
+export function RoleGuard({ segment, children }: RoleGuardProps) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+  const [authorized, setAuthorized] = useState(false);
+
+  useEffect(() => {
+    if (loading) return; // wait for auth to resolve
+
+    if (!user) {
+      // Not logged in at all → send to login
+      router.replace("/login");
+      return;
+    }
+
+    const requiredRole = ROLE_ROUTE_MAP[segment];
+    if (user.role !== requiredRole) {
+      // Logged in but wrong role → redirect to their own dashboard
+      const correctPath = getRolePath(user.role);
+      toast.error("Access denied. You don't have permission to view that page.");
+      router.replace(`/${correctPath}/dashboard`);
+      return;
+    }
+
+    // All good
+    setAuthorized(true);
+  }, [user, loading, segment, router]);
+
+  // While auth is resolving, show a loading skeleton
+  if (loading || !authorized) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-3 border-outline-variant border-t-primary-container rounded-full animate-spin" />
+          <p className="text-sm text-on-surface-variant font-medium animate-pulse">
+            Verifying access...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
 }
 
 export { getRolePath };

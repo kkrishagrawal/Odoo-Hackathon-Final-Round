@@ -7,7 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect, useTransition } from "react";
 import { useAuth, AuthUser } from "@/components/auth/AuthContext";
-import { requestPasswordReset } from "@/app/actions/security";
+import { requestPasswordReset, changePasswordDirect } from "@/app/actions/security";
+import { Eye, EyeOff } from "lucide-react";
+import { toast } from "sonner";
 
 interface ProfileViewProps {
   /** When set, fetch this user's profile instead of the logged-in user's */
@@ -34,9 +36,17 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
   const [targetUser, setTargetUser] = useState<AuthUser | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
   
-  // Password Reset State
+  // Password Reset State (Admin)
   const [requestingPassword, setRequestingPassword] = useState(false);
-  const [passwordResetStatus, setPasswordResetStatus] = useState<{ type: "success" | "error" | "fallback", message: string, link?: string } | null>(null);
+
+  // Direct Password Change State (non-Admin)
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  const isAdmin = role === "admin";
 
   // The user data to display: either the fetched target user or the logged-in user
   const displayUser = isViewingOther ? targetUser : authUser;
@@ -105,11 +115,14 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
           // Refresh self
           await refreshUser();
         }
+        toast.success("Profile saved successfully.");
       } else {
         const data = await res.json();
+        toast.error(data.error || "Failed to save profile.");
         console.error("Save failed:", data.error);
       }
     } catch (err) {
+      toast.error("An unexpected error occurred while saving.");
       console.error("Save error:", err);
     } finally {
       setSaving(false);
@@ -119,20 +132,26 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
 
   const handleRequestPasswordChange = async () => {
     setRequestingPassword(true);
-    setPasswordResetStatus(null);
     try {
       const result = await requestPasswordReset();
       if (result.success) {
         if (result.emailSent) {
-          setPasswordResetStatus({ type: "success", message: "Password reset link has been sent to your email." });
+          toast.success("Password reset link has been sent to your email.");
         } else if (result.fallbackLink) {
-          setPasswordResetStatus({ type: "fallback", message: "SMTP delivery failed in dev mode. Use this link:", link: result.fallbackLink });
+          toast.warning("SMTP delivery failed in dev mode. Check console or use fallback link.", {
+            description: result.fallbackLink,
+            duration: 10000,
+            action: {
+              label: "Open Link",
+              onClick: () => window.open(result.fallbackLink, "_blank")
+            }
+          });
         }
       } else {
-        setPasswordResetStatus({ type: "error", message: result.error || "Failed to request password reset." });
+        toast.error(result.error || "Failed to request password reset.");
       }
     } catch (err) {
-      setPasswordResetStatus({ type: "error", message: "An unexpected error occurred." });
+      toast.error("An unexpected error occurred.");
     } finally {
       setRequestingPassword(false);
     }
@@ -289,7 +308,7 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
           <TabsTrigger value="salary-info" disabled={!canViewSalaryAndSecurity} className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-container rounded-none pb-3 pt-2 px-1 text-base text-on-surface-variant data-[state=active]:text-on-surface disabled:opacity-30">
             Salary Info
           </TabsTrigger>
-          <TabsTrigger value="security" disabled={!canViewSalaryAndSecurity} className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-container rounded-none pb-3 pt-2 px-1 text-base text-on-surface-variant data-[state=active]:text-on-surface disabled:opacity-30">
+          <TabsTrigger value="security" disabled={isViewingOther} className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-container rounded-none pb-3 pt-2 px-1 text-base text-on-surface-variant data-[state=active]:text-on-surface disabled:opacity-30">
             Security
           </TabsTrigger>
         </TabsList>
@@ -633,7 +652,6 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
 
           {/* Security Tab */}
           <TabsContent value="security" className="outline-none">
-            {canViewSalaryAndSecurity ? (
                <div className="w-full p-8 sm:p-12 border border-outline-variant/30 rounded-xl text-center bg-surface-container-low/30 flex flex-col items-center">
                  <span className="material-symbols-outlined text-5xl text-outline mb-3">lock</span>
                  <h3 className="text-xl font-medium text-on-surface mb-2">Security Settings</h3>
@@ -641,34 +659,85 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
                  
                  <div className="bg-surface-container-lowest border border-outline-variant/30 p-6 rounded-lg w-full max-w-[450px] text-left shadow-sm shrink-0">
                     <h4 className="font-semibold text-lg mb-2 text-on-surface">Password Management</h4>
-                    <p className="text-sm text-on-surface-variant mb-6">Receive a secure link via email to change your password. The link will be valid for 2 hours.</p>
-                    <Button 
-                      onClick={handleRequestPasswordChange} 
-                      disabled={requestingPassword}
-                      className="bg-on-surface hover:bg-inverse-surface text-on-primary w-full"
-                    >
-                        {requestingPassword ? "Sending link..." : "Change Password"}
-                    </Button>
-                    
-                    {passwordResetStatus && (
-                      <div className={`mt-4 p-3 rounded text-sm ${
-                        passwordResetStatus.type === "error" ? "bg-red-50 text-red-600 border border-red-200" :
-                        passwordResetStatus.type === "success" ? "bg-green-50 text-green-700 border border-green-200" :
-                        "bg-amber-50 text-amber-800 border border-amber-200"
-                      }`}>
-                        <p>{passwordResetStatus.message}</p>
-                        {passwordResetStatus.link && (
-                          <div className="mt-2 bg-white border border-amber-200 p-2 rounded break-all">
-                            <a href={passwordResetStatus.link} target="_blank" rel="noreferrer" className="text-amber-600 hover:underline font-mono text-xs">
-                              {passwordResetStatus.link}
-                            </a>
+
+                    {isAdmin ? (
+                      /* ── Admin: email-based reset link ── */
+                      <>
+                        <p className="text-sm text-on-surface-variant mb-6">Receive a secure link via email to change your password. The link will be valid for 2 hours.</p>
+                        <Button 
+                          onClick={handleRequestPasswordChange} 
+                          disabled={requestingPassword}
+                          className="bg-on-surface hover:bg-inverse-surface text-on-primary w-full"
+                        >
+                            {requestingPassword ? "Sending link..." : "Send Reset Link"}
+                        </Button>
+                      </>
+                    ) : (
+                      /* ── Non-Admin: direct new / confirm password fields ── */
+                      <>
+                        <p className="text-sm text-on-surface-variant mb-6">Enter a new password below to update your account password.</p>
+
+                        <div className="space-y-4">
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-on-surface-variant">New Password</label>
+                            <div className="relative">
+                              <Input
+                                type={showNewPassword ? "text" : "password"}
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                placeholder="Min. 6 characters"
+                                className="pr-10"
+                              />
+                              <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface" onClick={() => setShowNewPassword(!showNewPassword)}>
+                                {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                              </button>
+                            </div>
                           </div>
-                        )}
-                      </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-on-surface-variant">Confirm Password</label>
+                            <div className="relative">
+                              <Input
+                                type={showConfirmNewPassword ? "text" : "password"}
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                placeholder="Re-enter password"
+                                className="pr-10"
+                              />
+                              <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface" onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}>
+                                {showConfirmNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <Button
+                          onClick={async () => {
+                            setChangingPassword(true);
+                            try {
+                              const result = await changePasswordDirect(newPassword, confirmPassword);
+                              if (result.success) {
+                                toast.success("Password changed successfully!");
+                                setNewPassword("");
+                                setConfirmPassword("");
+                              } else {
+                                toast.error(result.error || "Failed to change password.");
+                              }
+                            } catch {
+                              toast.error("An unexpected error occurred.");
+                            } finally {
+                              setChangingPassword(false);
+                            }
+                          }}
+                          disabled={changingPassword || !newPassword || !confirmPassword}
+                          className="bg-on-surface hover:bg-inverse-surface text-on-primary w-full mt-6"
+                        >
+                          {changingPassword ? "Saving..." : "Save New Password"}
+                        </Button>
+                      </>
                     )}
                  </div>
                </div>
-            ) : null}
           </TabsContent>
         </div>
       </Tabs>

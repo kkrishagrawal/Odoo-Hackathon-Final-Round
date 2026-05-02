@@ -4,6 +4,7 @@ import { useState, useEffect, useTransition } from "react";
 import { Loader2, Plus, Send, X, ChevronDown } from "lucide-react";
 import { createEmployee, resendCredentialsEmail, getCompanyEmployees } from "./actions";
 import type { EmployeeRow } from "./actions";
+import { toast } from "sonner";
 
 const ROLE_LABELS: Record<string, string> = {
   EMPLOYEE: "Employee",
@@ -21,18 +22,6 @@ export default function SettingsPage() {
   const [employees, setEmployees] = useState<EmployeeRow[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [formError, setFormError] = useState<string | null>(null);
-  const [formSuccess, setFormSuccess] = useState<{
-    loginId: string;
-    name: string;
-    emailSent: boolean;
-    password?: string;
-  } | null>(null);
-  const [resendResult, setResendResult] = useState<{
-    userId: string;
-    emailSent: boolean;
-    password?: string;
-  } | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [sendStatus, setSendStatus] = useState<Record<string, "sending" | "sent" | "error">>({});
   const [loadingList, setLoadingList] = useState(true);
@@ -57,8 +46,6 @@ export default function SettingsPage() {
     setName("");
     setEmail("");
     setRole("EMPLOYEE");
-    setFormError(null);
-    // don't reset formSuccess here — keep it visible
   }
 
   function handleCancel() {
@@ -68,8 +55,6 @@ export default function SettingsPage() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    setFormError(null);
-    setFormSuccess(null);
 
     const fd = new FormData();
     fd.set("name", name);
@@ -79,19 +64,26 @@ export default function SettingsPage() {
     startTransition(async () => {
       const result = await createEmployee(fd);
       if (!result.success) {
-        setFormError(result.error ?? "Failed to create user.");
+        toast.error(result.error ?? "Failed to create user.");
         return;
       }
-      setFormSuccess({
-        loginId: result.loginId!,
-        name,
-        emailSent: result.emailSent ?? false,
-        password: result.password,
-      });
+      
+      if (result.emailSent) {
+        toast.success(`Account created for ${name}`, {
+          description: `Login ID: ${result.loginId} — Credentials emailed.`,
+          duration: 10000,
+        });
+      } else {
+        toast.warning(`Account created for ${name}, but email failed.`, {
+          description: `Login ID: ${result.loginId} | Password: ${result.password}`,
+          duration: 30000,
+          closeButton: true,
+        });
+      }
+
       setName("");
       setEmail("");
       setRole("EMPLOYEE");
-      setFormError(null);
       loadEmployees();
     });
   }
@@ -99,17 +91,24 @@ export default function SettingsPage() {
   async function handleResend(userId: string) {
     setSendingId(userId);
     setSendStatus((s) => ({ ...s, [userId]: "sending" }));
-    setResendResult(null);
+    
     const result = await resendCredentialsEmail(userId) as any;
     setSendingId(null);
+    
     if (result.success) {
       setSendStatus((s) => ({ ...s, [userId]: "sent" }));
       if (!result.emailSent && result.password) {
-        // SMTP failed — show credentials inline
-        setResendResult({ userId, emailSent: false, password: result.password });
+        toast.warning("Email delivery failed (SMTP error).", {
+          description: `Share this password manually: ${result.password}`,
+          duration: 30000,
+          closeButton: true,
+        });
+      } else {
+        toast.success("Credentials emailed successfully.");
       }
     } else {
       setSendStatus((s) => ({ ...s, [userId]: "error" }));
+      toast.error("Failed to resend credentials.");
     }
     setTimeout(() => {
       setSendStatus((s) => {
@@ -141,84 +140,6 @@ export default function SettingsPage() {
         )}
       </div>
 
-      {/* Success / Warning Banner */}
-      {formSuccess && (
-        <div className={`flex items-start gap-3 rounded-xl p-4 border ${formSuccess.emailSent
-          ? "bg-emerald-50 border-emerald-200"
-          : "bg-amber-50 border-amber-200"
-          }`}>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${formSuccess.emailSent ? "bg-emerald-500/15" : "bg-amber-500/15"
-            }`}>
-            {formSuccess.emailSent ? (
-              <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3m0 3h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-              </svg>
-            )}
-          </div>
-          <div className="flex-1 min-w-0 space-y-2">
-            <p className={`text-sm font-semibold ${formSuccess.emailSent ? "text-emerald-800" : "text-amber-800"
-              }`}>
-              Account created for {formSuccess.name}
-            </p>
-            {formSuccess.emailSent ? (
-              <p className="text-sm text-emerald-700">
-                Login ID:{" "}
-                <span className="font-mono font-bold tracking-wider">{formSuccess.loginId}</span>
-                {" "}— Credentials have been emailed.
-              </p>
-            ) : (
-              <>
-                <p className="text-sm text-amber-700 font-medium">
-                  ⚠ Email delivery failed (SMTP error). Share these credentials manually:
-                </p>
-                <div className="bg-white border border-amber-200 rounded-lg px-4 py-3 space-y-1.5">
-                  <div className="flex items-center gap-3 text-sm">
-                    <span className="text-amber-600 w-20 shrink-0">Login ID</span>
-                    <span className="font-mono font-bold text-on-surface tracking-wider select-all">{formSuccess.loginId}</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <span className="text-amber-600 w-20 shrink-0">Password</span>
-                    <span className="font-mono font-bold text-on-surface select-all">{formSuccess.password}</span>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-          <button onClick={() => setFormSuccess(null)} className={`transition-colors ${formSuccess.emailSent ? "text-emerald-500 hover:text-emerald-700" : "text-amber-500 hover:text-amber-700"
-            }`}>
-            <X size={16} />
-          </button>
-        </div>
-      )}
-
-      {/* Resend credentials inline fallback */}
-      {resendResult && !resendResult.emailSent && (
-        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <div className="w-8 h-8 rounded-full bg-amber-500/15 flex items-center justify-center shrink-0 mt-0.5">
-            <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3m0 3h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-            </svg>
-          </div>
-          <div className="flex-1 min-w-0 space-y-2">
-            <p className="text-sm font-semibold text-amber-800">Password reset — email delivery failed.</p>
-            <p className="text-sm text-amber-700">Share the new password manually with the employee:</p>
-            <div className="bg-white border border-amber-200 rounded-lg px-4 py-3">
-              <div className="flex items-center gap-3 text-sm">
-                <span className="text-amber-600 w-24 shrink-0">New Password</span>
-                <span className="font-mono font-bold text-on-surface select-all">{resendResult.password}</span>
-              </div>
-            </div>
-          </div>
-          <button onClick={() => setResendResult(null)} className="text-amber-500 hover:text-amber-700 transition-colors">
-            <X size={16} />
-          </button>
-        </div>
-      )}
-
       {/* Create User Form */}
       {showForm && (
         <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden">
@@ -230,11 +151,6 @@ export default function SettingsPage() {
           </div>
 
           <form onSubmit={handleCreate} className="p-5 space-y-4">
-            {formError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-2.5 text-sm font-medium">
-                {formError}
-              </div>
-            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Name */}

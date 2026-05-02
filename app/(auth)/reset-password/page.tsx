@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { resetPassword } from "@/app/actions/security";
+import { toast } from "sonner";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -17,7 +18,6 @@ function ResetPasswordForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   if (!token) {
@@ -51,7 +51,6 @@ function ResetPasswordForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     setLoading(true);
 
     const formData = new FormData();
@@ -63,11 +62,12 @@ function ResetPasswordForm() {
       const result = await resetPassword(formData);
       if (result.success) {
         setSuccess(true);
+        toast.success("Password reset successfully.");
       } else {
-        setError(result.error || "Failed to reset password.");
+        toast.error(result.error || "Failed to reset password.");
       }
     } catch (err) {
-      setError("An unexpected error occurred.");
+      toast.error("An unexpected error occurred.");
     } finally {
       setLoading(false);
     }
@@ -79,15 +79,6 @@ function ResetPasswordForm() {
         <h1 className="text-2xl font-bold text-on-surface mb-2">Create New Password</h1>
         <p className="text-on-surface-variant text-sm">Please enter your new password below.</p>
       </div>
-
-      {error && (
-        <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm border border-red-200 flex items-start gap-2">
-           <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          {error}
-        </div>
-      )}
 
       <div className="space-y-2">
         <label className="text-sm font-semibold text-on-surface-variant uppercase tracking-wider">New Password <span className="text-red-500">*</span></label>

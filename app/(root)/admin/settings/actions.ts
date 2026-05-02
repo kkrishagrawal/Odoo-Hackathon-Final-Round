@@ -163,7 +163,7 @@ export async function createEmployee(formData: FormData): Promise<CreateEmployee
 
 // ─── Send Credentials Email (resend) ────────────────────────────────────────
 
-export async function resendCredentialsEmail(userId: string): Promise<{ success: boolean; error?: string }> {
+export async function resendCredentialsEmail(userId: string): Promise<{ success: boolean; error?: string; emailSent?: boolean; password?: string }> {
   try {
     const admin = await getAdminWithCompany();
     if (!admin) {
