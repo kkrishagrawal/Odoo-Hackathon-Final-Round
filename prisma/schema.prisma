@@ -196,6 +196,9 @@ model Attendance {
   workHours    Decimal?  @db.Decimal(5, 2)
   extraHours   Decimal?  @db.Decimal(5, 2)
 
+  // Break tracking: JSON array of { pausedAt: ISO, resumedAt: ISO | null }
+  breaks       Json      @default("[]")
+
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
