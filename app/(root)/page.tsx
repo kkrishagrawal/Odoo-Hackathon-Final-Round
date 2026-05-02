@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Link from "next/link";
+import { useCompanyLogo } from "@/components/company-logo-provider";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -11,6 +12,7 @@ export default function Home() {
   const heroRef = useRef<HTMLDivElement>(null);
   const featuresRef = useRef<HTMLDivElement>(null);
   const payslipRef = useRef<HTMLDivElement>(null);
+  const { logoUrl } = useCompanyLogo();
 
   useEffect(() => {
     // Hero Animations
@@ -97,7 +99,11 @@ export default function Home() {
         <div className="flex justify-between items-center h-20 max-w-7xl mx-auto px-6 lg:px-12">
           <div className="flex items-center gap-md">
             <Link className="text-2xl font-black tracking-tight text-[#714B67] dark:text-white font-h1 antialiased" href="/">
-              EmPay
+              {logoUrl ? (
+                <img src={logoUrl} alt="Company Logo" className="h-8 w-auto object-contain" />
+              ) : (
+                "EmPay"
+              )}
             </Link>
           </div>
           <div className="hidden md:flex items-center gap-lg font-h1 antialiased">
