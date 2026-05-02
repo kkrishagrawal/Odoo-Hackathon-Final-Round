@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCompanyLogo } from "@/components/company-logo-provider";
+import { useAuth, getRolePath } from "@/components/auth/AuthContext";
 import { login } from "../actions";
 
 /** Map role to its dashboard route */
@@ -28,6 +29,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const { logoUrl } = useCompanyLogo();
+  const { setUser, refreshUser } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -47,6 +49,9 @@ export default function LoginPage() {
       setError(result.error ?? "Login failed.");
       return;
     }
+
+    // Fetch full user data from server and store in context + localStorage
+    await refreshUser();
 
     // Redirect based on role
     const route = getDashboardRoute(result.role!);
@@ -125,9 +130,9 @@ export default function LoginPage() {
                 "SIGN IN"
               )}
             </Button>
-
+            
             <p className="text-sm text-on-surface-variant mt-2">
-              Don't have an Account?{" "}
+              Don&apos;t have an Account?{" "}
               <Link href="/signup" className="text-on-surface hover:text-on-surface-variant hover:underline font-semibold">
                 Sign Up
               </Link>

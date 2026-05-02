@@ -5,35 +5,151 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useAuth, AuthUser } from "@/components/auth/AuthContext";
 
-export function ProfileView() {
+interface ProfileViewProps {
+  /** When set, fetch this user's profile instead of the logged-in user's */
+  targetUserId?: string;
+}
+
+export function ProfileView({ targetUserId }: ProfileViewProps) {
   const pathname = usePathname();
+  const { user: authUser, refreshUser } = useAuth();
+  
   // Get role from url e.g. /employee/profile -> employee
   const role = pathname?.split('/')[1] || "employee";
   
   const isEmployee = role === "employee";
-  const canEditTopSection = !isEmployee;
+  const isViewingOther = !!targetUserId && targetUserId !== authUser?.id;
+  
+  // When viewing another user, admin/hr/payroll can edit everything
+  const canEditTopSection = isViewingOther || !isEmployee;
   const canViewSalaryAndSecurity = !isEmployee;
 
   const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(!!targetUserId);
+  const [targetUser, setTargetUser] = useState<AuthUser | null>(null);
+  const formRef = useRef<HTMLDivElement>(null);
 
-  const handleSave = () => {
-    // Here you would normally save the data to your backend
-    setIsEditing(false);
+  // The user data to display: either the fetched target user or the logged-in user
+  const displayUser = isViewingOther ? targetUser : authUser;
+
+  // Fetch target user data when viewing someone else's profile
+  useEffect(() => {
+    if (!targetUserId) return;
+    
+    setLoading(true);
+    fetch(`/api/user/${targetUserId}`)
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch user");
+        return res.json();
+      })
+      .then(data => {
+        if (data.user) setTargetUser(data.user);
+      })
+      .catch(err => console.error("Error fetching user:", err))
+      .finally(() => setLoading(false));
+  }, [targetUserId]);
+
+  const handleSave = async () => {
+    if (!formRef.current || !displayUser) return;
+    setSaving(true);
+
+    // Collect all inputs from the form container
+    const inputs = formRef.current.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input[data-field], textarea[data-field]");
+    const updates: Record<string, unknown> = {};
+    const bankUpdates: Record<string, string> = {};
+
+    inputs.forEach((input) => {
+      const field = input.getAttribute("data-field");
+      const group = input.getAttribute("data-group");
+      if (!field) return;
+      
+      const value = input.value?.trim() || null;
+      
+      if (group === "bank") {
+        if (value) bankUpdates[field] = value;
+      } else {
+        updates[field] = value;
+      }
+    });
+
+    if (Object.keys(bankUpdates).length > 0) {
+      updates.bankDetails = bankUpdates;
+    }
+
+    // If editing another user, include their userId
+    if (isViewingOther && targetUserId) {
+      updates.userId = targetUserId;
+    }
+
+    try {
+      const res = await fetch("/api/user/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (isViewingOther && data.user) {
+          // Update the local target user state
+          setTargetUser(data.user);
+        } else {
+          // Refresh self
+          await refreshUser();
+        }
+      } else {
+        const data = await res.json();
+        console.error("Save failed:", data.error);
+      }
+    } catch (err) {
+      console.error("Save error:", err);
+    } finally {
+      setSaving(false);
+      setIsEditing(false);
+    }
   };
 
+  // Loading skeleton
+  if (loading) {
+    return (
+      <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/30 shadow-sm p-8 animate-pulse">
+        <div className="flex gap-12 mb-10">
+          <div className="w-40 h-40 rounded-full bg-surface-container-low" />
+          <div className="flex-1 space-y-4">
+            <div className="h-10 bg-surface-container-low rounded w-64" />
+            <div className="h-5 bg-surface-container-low rounded w-48" />
+            <div className="h-5 bg-surface-container-low rounded w-40" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // User initials for avatar
+  const initials = displayUser?.name
+    ? displayUser.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+    : "??";
+
+  // Helper for input className
+  const editableClass = (canEdit: boolean) => 
+    `w-full bg-transparent border-b py-1 mt-1 focus:outline-none text-on-surface ${isEditing && canEdit ? "border-outline-variant/50 focus:border-primary-container" : "border-transparent"}`;
+  
+  const privateFieldClass = `flex-1 ${isEditing ? "bg-surface-container-low border-outline-variant/30" : "bg-transparent border-transparent shadow-none px-0 text-on-surface focus-visible:ring-0"}`;
+
   return (
-    <div className="relative bg-surface-container-lowest rounded-xl border border-outline-variant/30 shadow-sm p-8">
+    <div ref={formRef} className="relative bg-surface-container-lowest rounded-xl border border-outline-variant/30 shadow-sm p-8">
       {/* Action Buttons */}
       <div className="absolute top-8 right-8 flex gap-3 z-10">
         {isEditing ? (
           <>
-            <Button onClick={() => setIsEditing(false)} variant="outline" className="border-outline-variant/30 text-on-surface hover:bg-surface-container-low">
+            <Button onClick={() => setIsEditing(false)} variant="outline" className="border-outline-variant/30 text-on-surface hover:bg-surface-container-low" disabled={saving}>
               Cancel
             </Button>
-            <Button onClick={handleSave} className="bg-[#A463B0] hover:bg-[#8A5294] text-white">
-              Save Changes
+            <Button onClick={handleSave} className="bg-[#A463B0] hover:bg-[#8A5294] text-white" disabled={saving}>
+              {saving ? "Saving..." : "Save Changes"}
             </Button>
           </>
         ) : (
@@ -47,7 +163,11 @@ export function ProfileView() {
       <div className="flex flex-col md:flex-row gap-12 mb-10 pt-4 md:pt-0">
         {/* Avatar */}
         <div className="flex-shrink-0 relative group w-40 h-40 rounded-full bg-[#5A3C53] flex items-center justify-center border-4 border-surface-container-lowest shadow-md overflow-hidden">
-          <span className="text-4xl text-white font-h1">MN</span>
+          {displayUser?.profilePicUrl ? (
+            <img src={displayUser.profilePicUrl} alt={displayUser.name} className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-4xl text-white font-h1">{initials}</span>
+          )}
           {isEditing && (
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
               <span className="material-symbols-outlined text-white text-3xl">edit</span>
@@ -59,8 +179,8 @@ export function ProfileView() {
         <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 max-w-4xl pr-20">
           <div className="col-span-1 md:col-span-2 mb-2">
             <input 
-              type="text" 
-              defaultValue="My Name" 
+              type="text" data-field="name"
+              defaultValue={displayUser?.name || ""} key={`name-${displayUser?.name}`}
               readOnly={!isEditing || !canEditTopSection}
               className={`text-4xl font-h1 font-bold bg-transparent focus:outline-none w-full border-b pb-2 ${isEditing && canEditTopSection ? "border-outline-variant/50 focus:border-primary-container" : "border-transparent text-on-background"}`}
             />
@@ -68,30 +188,25 @@ export function ProfileView() {
 
           <div className="space-y-4">
             <div>
-              <label className="text-sm text-on-surface-variant font-medium">Job Position</label>
-              <input 
-                type="text" 
-                defaultValue="Software Engineer" 
-                readOnly={!isEditing || !canEditTopSection}
-                className={`w-full bg-transparent border-b py-1 mt-1 focus:outline-none text-on-surface ${isEditing && canEditTopSection ? "border-outline-variant/50 focus:border-primary-container" : "border-transparent"}`}
-              />
+              <label className="text-sm text-on-surface-variant font-medium">Login ID</label>
+              <input type="text" value={displayUser?.id || "—"} readOnly className="w-full bg-transparent border-b py-1 mt-1 focus:outline-none text-on-surface border-transparent" />
             </div>
             <div>
               <label className="text-sm text-on-surface-variant font-medium">Email</label>
               <input 
-                type="email" 
-                defaultValue="my.name@company.com" 
+                type="email" data-field="email"
+                defaultValue={displayUser?.email || ""} key={`email-${displayUser?.email}`}
                 readOnly={!isEditing || !canEditTopSection}
-                className={`w-full bg-transparent border-b py-1 mt-1 focus:outline-none text-on-surface ${isEditing && canEditTopSection ? "border-outline-variant/50 focus:border-primary-container" : "border-transparent"}`}
+                className={editableClass(canEditTopSection)}
               />
             </div>
             <div>
               <label className="text-sm text-on-surface-variant font-medium">Mobile</label>
               <input 
-                type="text" 
-                defaultValue="+1 234 567 8900" 
+                type="text" data-field="phone"
+                defaultValue={displayUser?.phone || ""} key={`phone-${displayUser?.phone}`}
                 readOnly={!isEditing || !canEditTopSection}
-                className={`w-full bg-transparent border-b py-1 mt-1 focus:outline-none text-on-surface ${isEditing && canEditTopSection ? "border-outline-variant/50 focus:border-primary-container" : "border-transparent"}`}
+                className={editableClass(canEditTopSection)}
               />
             </div>
           </div>
@@ -99,38 +214,37 @@ export function ProfileView() {
           <div className="space-y-4">
             <div>
               <label className="text-sm text-on-surface-variant font-medium">Company</label>
-              <input 
-                type="text" 
-                defaultValue="EmPay Tech" 
-                readOnly={!isEditing || !canEditTopSection}
-                className={`w-full bg-transparent border-b py-1 mt-1 focus:outline-none text-on-surface ${isEditing && canEditTopSection ? "border-outline-variant/50 focus:border-primary-container" : "border-transparent"}`}
-              />
+              <input type="text" value={displayUser?.company?.name || "—"} readOnly className="w-full bg-transparent border-b py-1 mt-1 focus:outline-none text-on-surface border-transparent" />
+            </div>
+            <div>
+              <label className="text-sm text-on-surface-variant font-medium">Company ID</label>
+              <input type="text" value={displayUser?.companyId || "—"} readOnly className="w-full bg-transparent border-b py-1 mt-1 focus:outline-none text-on-surface border-transparent font-mono text-xs" />
             </div>
             <div>
               <label className="text-sm text-on-surface-variant font-medium">Department</label>
               <input 
-                type="text" 
-                defaultValue="Engineering" 
+                type="text" data-field="department"
+                defaultValue={displayUser?.department || ""} key={`dept-${displayUser?.department}`}
                 readOnly={!isEditing || !canEditTopSection}
-                className={`w-full bg-transparent border-b py-1 mt-1 focus:outline-none text-on-surface ${isEditing && canEditTopSection ? "border-outline-variant/50 focus:border-primary-container" : "border-transparent"}`}
+                className={editableClass(canEditTopSection)}
               />
             </div>
             <div>
-              <label className="text-sm text-on-surface-variant font-medium">Manager</label>
+              <label className="text-sm text-on-surface-variant font-medium">Job Position</label>
               <input 
-                type="text" 
-                defaultValue="Jane Smith" 
+                type="text" data-field="jobPosition"
+                defaultValue={displayUser?.jobPosition || ""} key={`job-${displayUser?.jobPosition}`}
                 readOnly={!isEditing || !canEditTopSection}
-                className={`w-full bg-transparent border-b py-1 mt-1 focus:outline-none text-on-surface ${isEditing && canEditTopSection ? "border-outline-variant/50 focus:border-primary-container" : "border-transparent"}`}
+                className={editableClass(canEditTopSection)}
               />
             </div>
             <div>
               <label className="text-sm text-on-surface-variant font-medium">Location</label>
               <input 
-                type="text" 
-                defaultValue="New York Office" 
+                type="text" data-field="location"
+                defaultValue={displayUser?.location || ""} key={`loc-${displayUser?.location}`}
                 readOnly={!isEditing || !canEditTopSection}
-                className={`w-full bg-transparent border-b py-1 mt-1 focus:outline-none text-on-surface ${isEditing && canEditTopSection ? "border-outline-variant/50 focus:border-primary-container" : "border-transparent"}`}
+                className={editableClass(canEditTopSection)}
               />
             </div>
           </div>
@@ -140,30 +254,16 @@ export function ProfileView() {
       {/* Tabs Section */}
       <Tabs defaultValue="resume" className="w-full mt-6">
         <TabsList className="w-full justify-start border-b border-outline-variant/30 rounded-none bg-transparent h-auto p-0 gap-6">
-          <TabsTrigger 
-            value="resume" 
-            className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-container rounded-none pb-3 pt-2 px-1 text-base text-on-surface-variant data-[state=active]:text-on-surface"
-          >
+          <TabsTrigger value="resume" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-container rounded-none pb-3 pt-2 px-1 text-base text-on-surface-variant data-[state=active]:text-on-surface">
             Resume
           </TabsTrigger>
-          <TabsTrigger 
-            value="private-info" 
-            className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-container rounded-none pb-3 pt-2 px-1 text-base text-on-surface-variant data-[state=active]:text-on-surface"
-          >
+          <TabsTrigger value="private-info" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-container rounded-none pb-3 pt-2 px-1 text-base text-on-surface-variant data-[state=active]:text-on-surface">
             Private Info
           </TabsTrigger>
-          <TabsTrigger 
-            value="salary-info" 
-            disabled={!canViewSalaryAndSecurity}
-            className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-container rounded-none pb-3 pt-2 px-1 text-base text-on-surface-variant data-[state=active]:text-on-surface disabled:opacity-30"
-          >
+          <TabsTrigger value="salary-info" disabled={!canViewSalaryAndSecurity} className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-container rounded-none pb-3 pt-2 px-1 text-base text-on-surface-variant data-[state=active]:text-on-surface disabled:opacity-30">
             Salary Info
           </TabsTrigger>
-          <TabsTrigger 
-            value="security" 
-            disabled={!canViewSalaryAndSecurity}
-            className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-container rounded-none pb-3 pt-2 px-1 text-base text-on-surface-variant data-[state=active]:text-on-surface disabled:opacity-30"
-          >
+          <TabsTrigger value="security" disabled={!canViewSalaryAndSecurity} className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-container rounded-none pb-3 pt-2 px-1 text-base text-on-surface-variant data-[state=active]:text-on-surface disabled:opacity-30">
             Security
           </TabsTrigger>
         </TabsList>
@@ -180,9 +280,10 @@ export function ProfileView() {
                     {isEditing && <span className="material-symbols-outlined text-[16px] text-outline opacity-0 group-hover:opacity-100 transition-opacity">edit</span>}
                   </div>
                   <Textarea 
-                    readOnly={!isEditing}
-                    defaultValue="Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s."
+                    readOnly={!isEditing} data-field="about"
+                    defaultValue={displayUser?.about || ""} key={`about-${displayUser?.about}`}
                     className={`min-h-[120px] resize-none ${isEditing ? "border-transparent hover:border-outline-variant/30 focus:border-primary-container bg-transparent text-on-surface" : "border-transparent bg-transparent shadow-none px-0 text-on-surface-variant focus-visible:ring-0 focus-visible:ring-offset-0"}`}
+                    placeholder="Tell us about yourself..."
                   />
                 </div>
 
@@ -192,9 +293,10 @@ export function ProfileView() {
                     {isEditing && <span className="material-symbols-outlined text-[16px] text-outline opacity-0 group-hover:opacity-100 transition-opacity">edit</span>}
                   </div>
                   <Textarea 
-                    readOnly={!isEditing}
-                    defaultValue="Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s."
+                    readOnly={!isEditing} data-field="whatILove"
+                    defaultValue={displayUser?.whatILove || ""} key={`love-${displayUser?.whatILove}`}
                     className={`min-h-[120px] resize-none ${isEditing ? "border-transparent hover:border-outline-variant/30 focus:border-primary-container bg-transparent text-on-surface" : "border-transparent bg-transparent shadow-none px-0 text-on-surface-variant focus-visible:ring-0 focus-visible:ring-offset-0"}`}
+                    placeholder="Share what you love about your job..."
                   />
                 </div>
 
@@ -204,9 +306,10 @@ export function ProfileView() {
                     {isEditing && <span className="material-symbols-outlined text-[16px] text-outline opacity-0 group-hover:opacity-100 transition-opacity">edit</span>}
                   </div>
                   <Textarea 
-                    readOnly={!isEditing}
-                    defaultValue="Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s."
+                    readOnly={!isEditing} data-field="interests"
+                    defaultValue={displayUser?.interests || ""} key={`interests-${displayUser?.interests}`}
                     className={`min-h-[120px] resize-none ${isEditing ? "border-transparent hover:border-outline-variant/30 focus:border-primary-container bg-transparent text-on-surface" : "border-transparent bg-transparent shadow-none px-0 text-on-surface-variant focus-visible:ring-0 focus-visible:ring-offset-0"}`}
+                    placeholder="Share your interests and hobbies..."
                   />
                 </div>
               </div>
@@ -217,28 +320,38 @@ export function ProfileView() {
                   <h3 className="font-h3 text-xl font-bold text-on-surface mb-4 border-b border-outline-variant/30 pb-2">Skills</h3>
                   <div className="min-h-[120px]">
                     <div className="flex flex-wrap gap-2 mb-4">
-                      <span className="px-3 py-1 bg-[#A463B0]/10 text-[#A463B0] rounded-full text-sm font-medium border border-[#A463B0]/20">React</span>
-                      <span className="px-3 py-1 bg-[#A463B0]/10 text-[#A463B0] rounded-full text-sm font-medium border border-[#A463B0]/20">Next.js</span>
-                      <span className="px-3 py-1 bg-[#A463B0]/10 text-[#A463B0] rounded-full text-sm font-medium border border-[#A463B0]/20">TypeScript</span>
+                      {(displayUser?.skills && displayUser.skills.length > 0) ? (
+                        displayUser.skills.map((skill) => (
+                          <span key={skill.id} className="px-3 py-1 bg-[#A463B0]/10 text-[#A463B0] rounded-full text-sm font-medium border border-[#A463B0]/20">{skill.name}</span>
+                        ))
+                      ) : (
+                        <p className="text-on-surface-variant text-sm italic">No skills added yet.</p>
+                      )}
                     </div>
                   </div>
-                  {isEditing && <button className="text-[#A463B0] text-sm font-medium hover:underline flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">add</span> Add Skills</button>}
+                  {isEditing && <button type="button" className="text-[#A463B0] text-sm font-medium hover:underline flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">add</span> Add Skills</button>}
                 </div>
 
                 <div className="border border-outline-variant/30 p-5 rounded-lg bg-surface-container-low/30">
                   <h3 className="font-h3 text-xl font-bold text-on-surface mb-4 border-b border-outline-variant/30 pb-2">Certification</h3>
                   <div className="min-h-[120px]">
                     <div className="space-y-3 mb-4">
-                      <div className="flex justify-between items-center bg-surface-container-lowest p-3 rounded-md border border-outline-variant/20 shadow-sm">
-                        <div>
-                          <p className="font-semibold text-on-surface text-sm">AWS Certified Solutions Architect</p>
-                          <p className="text-xs text-on-surface-variant mt-0.5">Amazon Web Services</p>
-                        </div>
-                        <span className="text-xs font-medium text-on-surface-variant bg-surface-container-high px-2 py-1 rounded">2023</span>
-                      </div>
+                      {(displayUser?.certifications && displayUser.certifications.length > 0) ? (
+                        displayUser.certifications.map((cert) => (
+                          <div key={cert.id} className="flex justify-between items-center bg-surface-container-lowest p-3 rounded-md border border-outline-variant/20 shadow-sm">
+                            <div>
+                              <p className="font-semibold text-on-surface text-sm">{cert.name}</p>
+                              <p className="text-xs text-on-surface-variant mt-0.5">{cert.issuer || "—"}</p>
+                            </div>
+                            <span className="text-xs font-medium text-on-surface-variant bg-surface-container-high px-2 py-1 rounded">{cert.year || "—"}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-on-surface-variant text-sm italic">No certifications added yet.</p>
+                      )}
                     </div>
                   </div>
-                  {isEditing && <button className="text-[#A463B0] text-sm font-medium hover:underline flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">add</span> Add Certification</button>}
+                  {isEditing && <button type="button" className="text-[#A463B0] text-sm font-medium hover:underline flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">add</span> Add Certification</button>}
                 </div>
               </div>
             </div>
@@ -250,31 +363,31 @@ export function ProfileView() {
                <div className="space-y-6">
                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                    <label className="w-40 text-on-surface-variant font-medium text-sm">Date of Birth</label>
-                   <Input readOnly={!isEditing} type={isEditing ? "date" : "text"} className={`flex-1 ${isEditing ? "bg-surface-container-low border-outline-variant/30" : "bg-transparent border-transparent shadow-none px-0 text-on-surface focus-visible:ring-0"}`} defaultValue="1990-01-01" />
+                   <Input readOnly={!isEditing} data-field="dateOfBirth" type={isEditing ? "date" : "text"} className={privateFieldClass} defaultValue={displayUser?.dateOfBirth ? new Date(displayUser.dateOfBirth).toISOString().split('T')[0] : ""} key={`dob-${displayUser?.dateOfBirth}`} />
                  </div>
                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                    <label className="w-40 text-on-surface-variant font-medium text-sm">Residing Address</label>
-                   <Input readOnly={!isEditing} type="text" className={`flex-1 ${isEditing ? "bg-surface-container-low border-outline-variant/30" : "bg-transparent border-transparent shadow-none px-0 text-on-surface focus-visible:ring-0"}`} defaultValue="123 Main St, City, Country" />
+                   <Input readOnly={!isEditing} data-field="residingAddress" type="text" className={privateFieldClass} defaultValue={displayUser?.residingAddress || ""} key={`addr-${displayUser?.residingAddress}`} />
                  </div>
                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                    <label className="w-40 text-on-surface-variant font-medium text-sm">Nationality</label>
-                   <Input readOnly={!isEditing} type="text" className={`flex-1 ${isEditing ? "bg-surface-container-low border-outline-variant/30" : "bg-transparent border-transparent shadow-none px-0 text-on-surface focus-visible:ring-0"}`} defaultValue="American" />
+                   <Input readOnly={!isEditing} data-field="nationality" type="text" className={privateFieldClass} defaultValue={displayUser?.nationality || ""} key={`nat-${displayUser?.nationality}`} />
                  </div>
                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                    <label className="w-40 text-on-surface-variant font-medium text-sm">Personal Email</label>
-                   <Input readOnly={!isEditing} type="email" className={`flex-1 ${isEditing ? "bg-surface-container-low border-outline-variant/30" : "bg-transparent border-transparent shadow-none px-0 text-on-surface focus-visible:ring-0"}`} defaultValue="personal@example.com" />
+                   <Input readOnly={!isEditing} data-field="personalEmail" type="email" className={privateFieldClass} defaultValue={displayUser?.personalEmail || ""} key={`pemail-${displayUser?.personalEmail}`} />
                  </div>
                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                    <label className="w-40 text-on-surface-variant font-medium text-sm">Gender</label>
-                   <Input readOnly={!isEditing} type="text" className={`flex-1 ${isEditing ? "bg-surface-container-low border-outline-variant/30" : "bg-transparent border-transparent shadow-none px-0 text-on-surface focus-visible:ring-0"}`} defaultValue="Male" />
+                   <Input readOnly={!isEditing} data-field="gender" type="text" className={privateFieldClass} defaultValue={displayUser?.gender || ""} key={`gender-${displayUser?.gender}`} />
                  </div>
                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                    <label className="w-40 text-on-surface-variant font-medium text-sm">Marital Status</label>
-                   <Input readOnly={!isEditing} type="text" className={`flex-1 ${isEditing ? "bg-surface-container-low border-outline-variant/30" : "bg-transparent border-transparent shadow-none px-0 text-on-surface focus-visible:ring-0"}`} defaultValue="Single" />
+                   <Input readOnly={!isEditing} data-field="maritalStatus" type="text" className={privateFieldClass} defaultValue={displayUser?.maritalStatus || ""} key={`marital-${displayUser?.maritalStatus}`} />
                  </div>
                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                    <label className="w-40 text-on-surface-variant font-medium text-sm">Date of Joining</label>
-                   <Input readOnly={!isEditing} type={isEditing ? "date" : "text"} className={`flex-1 ${isEditing ? "bg-surface-container-low border-outline-variant/30" : "bg-transparent border-transparent shadow-none px-0 text-on-surface focus-visible:ring-0"}`} defaultValue="2022-06-15" />
+                   <Input readOnly={!isEditing} data-field="dateOfJoining" type={isEditing ? "date" : "text"} className={privateFieldClass} defaultValue={displayUser?.dateOfJoining ? new Date(displayUser.dateOfJoining).toISOString().split('T')[0] : ""} key={`doj-${displayUser?.dateOfJoining}`} />
                  </div>
                </div>
 
@@ -282,27 +395,27 @@ export function ProfileView() {
                  <h3 className="font-h3 text-xl font-bold text-on-surface border-b border-outline-variant/30 pb-2 mb-4">Bank Details</h3>
                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                    <label className="w-40 text-on-surface-variant font-medium text-sm">Account Number</label>
-                   <Input readOnly={!isEditing} type="text" className={`flex-1 ${isEditing ? "bg-surface-container-low border-outline-variant/30" : "bg-transparent border-transparent shadow-none px-0 text-on-surface focus-visible:ring-0"}`} defaultValue="123456789012" />
+                   <Input readOnly={!isEditing} data-field="accountNumber" data-group="bank" type="text" className={privateFieldClass} defaultValue={displayUser?.bankDetails?.accountNumber || ""} key={`ban-${displayUser?.bankDetails?.accountNumber}`} />
                  </div>
                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                    <label className="w-40 text-on-surface-variant font-medium text-sm">Bank Name</label>
-                   <Input readOnly={!isEditing} type="text" className={`flex-1 ${isEditing ? "bg-surface-container-low border-outline-variant/30" : "bg-transparent border-transparent shadow-none px-0 text-on-surface focus-visible:ring-0"}`} defaultValue="Chase Bank" />
+                   <Input readOnly={!isEditing} data-field="bankName" data-group="bank" type="text" className={privateFieldClass} defaultValue={displayUser?.bankDetails?.bankName || ""} key={`bname-${displayUser?.bankDetails?.bankName}`} />
                  </div>
                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                    <label className="w-40 text-on-surface-variant font-medium text-sm">IFSC Code</label>
-                   <Input readOnly={!isEditing} type="text" className={`flex-1 ${isEditing ? "bg-surface-container-low border-outline-variant/30" : "bg-transparent border-transparent shadow-none px-0 text-on-surface focus-visible:ring-0"}`} defaultValue="CHAS000123" />
+                   <Input readOnly={!isEditing} data-field="ifscCode" data-group="bank" type="text" className={privateFieldClass} defaultValue={displayUser?.bankDetails?.ifscCode || ""} key={`ifsc-${displayUser?.bankDetails?.ifscCode}`} />
                  </div>
                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                    <label className="w-40 text-on-surface-variant font-medium text-sm">PAN No</label>
-                   <Input readOnly={!isEditing} type="text" className={`flex-1 ${isEditing ? "bg-surface-container-low border-outline-variant/30" : "bg-transparent border-transparent shadow-none px-0 text-on-surface focus-visible:ring-0"}`} defaultValue="ABCDE1234F" />
+                   <Input readOnly={!isEditing} data-field="panNumber" data-group="bank" type="text" className={privateFieldClass} defaultValue={displayUser?.bankDetails?.panNumber || ""} key={`pan-${displayUser?.bankDetails?.panNumber}`} />
                  </div>
                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                    <label className="w-40 text-on-surface-variant font-medium text-sm">UAN NO</label>
-                   <Input readOnly={!isEditing} type="text" className={`flex-1 ${isEditing ? "bg-surface-container-low border-outline-variant/30" : "bg-transparent border-transparent shadow-none px-0 text-on-surface focus-visible:ring-0"}`} defaultValue="100012345678" />
+                   <Input readOnly={!isEditing} data-field="uanNumber" data-group="bank" type="text" className={privateFieldClass} defaultValue={displayUser?.bankDetails?.uanNumber || ""} key={`uan-${displayUser?.bankDetails?.uanNumber}`} />
                  </div>
                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                    <label className="w-40 text-on-surface-variant font-medium text-sm">Emp Code</label>
-                   <Input readOnly={!isEditing} type="text" className={`flex-1 ${isEditing ? "bg-surface-container-low border-outline-variant/30" : "bg-transparent border-transparent shadow-none px-0 text-on-surface focus-visible:ring-0"}`} defaultValue="EMP001" />
+                   <Input readOnly={!isEditing} data-field="employeeCode" data-group="bank" type="text" className={privateFieldClass} defaultValue={displayUser?.bankDetails?.employeeCode || ""} key={`empcode-${displayUser?.bankDetails?.employeeCode}`} />
                  </div>
                </div>
              </div>

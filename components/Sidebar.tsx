@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/components/auth/AuthContext";
 
 export type Role = "employee" | "hr" | "payroll" | "admin";
 
@@ -42,6 +43,7 @@ const roleMenus = {
 
 export default function Sidebar({ role }: SidebarProps) {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
   const menuItems = roleMenus[role] || [];
 
   return (
@@ -81,7 +83,10 @@ export default function Sidebar({ role }: SidebarProps) {
       </nav>
 
       <div className="p-4 border-t border-outline-variant/20">
-        <button className="flex items-center gap-3 px-3 py-3 w-full rounded-lg font-body-md text-error hover:bg-error/10 transition-colors">
+        <button 
+          onClick={() => { logout(); }}
+          className="flex items-center gap-3 px-3 py-3 w-full rounded-lg font-body-md text-error hover:bg-error/10 transition-colors"
+        >
           <span className="material-symbols-outlined text-xl">logout</span>
           <span className="font-medium">Logout</span>
         </button>

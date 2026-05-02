@@ -69,6 +69,7 @@ export type AuthResult = {
   error?: string;
   loginId?: string;
   role?: string;
+  companyId?: string;
 };
 
 // ─── Signup Action ──────────────────────────────────────────────────────────
@@ -149,7 +150,7 @@ export async function signup(formData: FormData): Promise<AuthResult> {
     // Create session
     await createSession(loginId);
 
-    return { success: true, loginId, role: "ADMIN" };
+    return { success: true, loginId, role: "ADMIN", companyId: company.id };
   } catch (err) {
     console.error("Signup error:", err);
     return {
@@ -194,7 +195,7 @@ export async function login(formData: FormData): Promise<AuthResult> {
     // Create session
     await createSession(user.id);
 
-    return { success: true, loginId: user.id, role: user.role };
+    return { success: true, loginId: user.id, role: user.role, companyId: user.companyId };
   } catch (err) {
     console.error("Login error:", err);
     return {

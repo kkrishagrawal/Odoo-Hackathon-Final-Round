@@ -4,12 +4,14 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useAttendance } from "@/components/attendance/AttendanceContext";
+import { useAuth, getRolePath } from "@/components/auth/AuthContext";
 
 function TopBarContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { isCheckedIn, checkInTime, elapsedTime, handleCheckIn, handleCheckOut } = useAttendance();
+  const { user, logout } = useAuth();
 
   const [showStatusPopup, setShowStatusPopup] = useState(false);
   const [showProfilePopup, setShowProfilePopup] = useState(false);
@@ -45,6 +47,20 @@ function TopBarContent() {
     handleCheckOut();
     setShowStatusPopup(false);
   };
+
+  const handleLogout = async () => {
+    setShowProfilePopup(false);
+    await logout();
+  };
+
+  // Determine profile route based on the current role path
+  const rolePath = pathname?.split('/')[1] || "employee";
+  const profileLink = `/${rolePath}/profile`;
+
+  // User initials for avatar
+  const initials = user?.name
+    ? user.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+    : "??";
 
   return (
     <div className="h-20 border-b border-outline-variant/20 bg-surface-container-lowest flex items-center justify-between px-8 shrink-0 z-40 relative">
@@ -106,15 +122,27 @@ function TopBarContent() {
               setShowProfilePopup(!showProfilePopup);
               setShowStatusPopup(false);
             }}
-            className="w-10 h-10 rounded-lg bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold overflow-hidden border border-outline-variant/30 hover:opacity-90 transition-opacity"
+            className="w-10 h-10 rounded-lg bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold overflow-hidden border border-outline-variant/30 hover:opacity-90 transition-opacity text-sm"
           >
-            <span className="material-symbols-outlined">person</span>
+            {user?.profilePicUrl ? (
+              <img src={user.profilePicUrl} alt={user.name} className="w-full h-full object-cover" />
+            ) : (
+              initials
+            )}
           </button>
 
           {showProfilePopup && (
-            <div className="absolute top-12 right-0 w-48 bg-surface-container-lowest border border-outline-variant/30 rounded-xl shadow-[0_8px_30px_rgba(113,75,103,0.12)] py-2 z-50">
+            <div className="absolute top-12 right-0 w-56 bg-surface-container-lowest border border-outline-variant/30 rounded-xl shadow-[0_8px_30px_rgba(113,75,103,0.12)] py-2 z-50">
+              {/* User info header */}
+              {user && (
+                <div className="px-4 py-2.5 border-b border-outline-variant/20">
+                  <p className="font-semibold text-on-surface text-sm truncate">{user.name}</p>
+                  <p className="text-xs text-on-surface-variant truncate">{user.email}</p>
+                  <p className="text-xs text-[#A463B0] font-medium mt-0.5">{user.role.replace("_", " ")}</p>
+                </div>
+              )}
               <Link 
-                href="/employee/profile" 
+                href={profileLink} 
                 onClick={() => setShowProfilePopup(false)}
                 className="flex items-center gap-3 px-4 py-2.5 text-body-md text-on-surface hover:bg-surface-container-low transition-colors"
               >
@@ -123,7 +151,7 @@ function TopBarContent() {
               </Link>
               <hr className="my-1 border-outline-variant/20" />
               <button 
-                onClick={() => setShowProfilePopup(false)}
+                onClick={handleLogout}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-body-md text-error hover:bg-error/10 transition-colors"
               >
                 <span className="material-symbols-outlined">logout</span>

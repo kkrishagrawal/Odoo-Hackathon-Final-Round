@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CldUploadWidget } from "next-cloudinary";
 import { useCompanyLogo } from "@/components/company-logo-provider";
+import { useAuth } from "@/components/auth/AuthContext";
 import { signup } from "../actions";
 
 export default function SignupPage() {
@@ -15,6 +16,7 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { logoUrl, setLogoUrl } = useCompanyLogo();
+  const { refreshUser } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [successInfo, setSuccessInfo] = useState<{
@@ -45,6 +47,9 @@ export default function SignupPage() {
 
     // Show the generated Login ID before redirecting
     setSuccessInfo({ loginId: result.loginId! });
+
+    // Fetch full user data to populate AuthContext + localStorage
+    await refreshUser();
 
     // Redirect after a short delay so user can see their Login ID
     setTimeout(() => {
