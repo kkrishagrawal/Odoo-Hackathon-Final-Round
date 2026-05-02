@@ -12,13 +12,13 @@ import { login } from "../actions";
 function getDashboardRoute(role: string): string {
   switch (role) {
     case "ADMIN":
-      return "/admin";
+      return "/admin/dashboard";
     case "HR_OFFICER":
-      return "/hr";
+      return "/hr/dashboard";
     case "PAYROLL_OFFICER":
-      return "/payroll";
+      return "/payroll/dashboard";
     case "EMPLOYEE":
-      return "/employee";
+      return "/employee/dashboard";
     default:
       return "/";
   }
@@ -125,7 +125,7 @@ export default function LoginPage() {
                 "SIGN IN"
               )}
             </Button>
-            
+
             <p className="text-sm text-on-surface-variant mt-2">
               Don't have an Account?{" "}
               <Link href="/signup" className="text-on-surface hover:text-on-surface-variant hover:underline font-semibold">

@@ -143,14 +143,12 @@ export default function SettingsPage() {
 
       {/* Success / Warning Banner */}
       {formSuccess && (
-        <div className={`flex items-start gap-3 rounded-xl p-4 border ${
-          formSuccess.emailSent
-            ? "bg-emerald-50 border-emerald-200"
-            : "bg-amber-50 border-amber-200"
-        }`}>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-            formSuccess.emailSent ? "bg-emerald-500/15" : "bg-amber-500/15"
+        <div className={`flex items-start gap-3 rounded-xl p-4 border ${formSuccess.emailSent
+          ? "bg-emerald-50 border-emerald-200"
+          : "bg-amber-50 border-amber-200"
           }`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${formSuccess.emailSent ? "bg-emerald-500/15" : "bg-amber-500/15"
+            }`}>
             {formSuccess.emailSent ? (
               <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -162,9 +160,8 @@ export default function SettingsPage() {
             )}
           </div>
           <div className="flex-1 min-w-0 space-y-2">
-            <p className={`text-sm font-semibold ${
-              formSuccess.emailSent ? "text-emerald-800" : "text-amber-800"
-            }`}>
+            <p className={`text-sm font-semibold ${formSuccess.emailSent ? "text-emerald-800" : "text-amber-800"
+              }`}>
               Account created for {formSuccess.name}
             </p>
             {formSuccess.emailSent ? (
@@ -191,9 +188,8 @@ export default function SettingsPage() {
               </>
             )}
           </div>
-          <button onClick={() => setFormSuccess(null)} className={`transition-colors ${
-            formSuccess.emailSent ? "text-emerald-500 hover:text-emerald-700" : "text-amber-500 hover:text-amber-700"
-          }`}>
+          <button onClick={() => setFormSuccess(null)} className={`transition-colors ${formSuccess.emailSent ? "text-emerald-500 hover:text-emerald-700" : "text-amber-500 hover:text-amber-700"
+            }`}>
             <X size={16} />
           </button>
         </div>
@@ -430,13 +426,12 @@ export default function SettingsPage() {
                           onClick={() => handleResend(emp.id)}
                           disabled={sendingId === emp.id}
                           title="Resend credentials email"
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                            status === "sent"
-                              ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                              : status === "error"
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${status === "sent"
+                            ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                            : status === "error"
                               ? "bg-red-50 border-red-200 text-red-700"
                               : "border-outline-variant text-on-surface-variant hover:bg-surface-container-low hover:text-primary-container hover:border-primary-container"
-                          } disabled:opacity-60`}
+                            } disabled:opacity-60`}
                         >
                           {sendingId === emp.id ? (
                             <>

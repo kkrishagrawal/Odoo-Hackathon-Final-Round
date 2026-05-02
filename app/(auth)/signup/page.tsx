@@ -125,8 +125,8 @@ export default function SignupPage() {
             </label>
             <Input id="companyName" name="companyName" type="text" required />
             <div className="flex sm:justify-end">
-              <CldUploadWidget 
-                uploadPreset="ml_default" 
+              <CldUploadWidget
+                uploadPreset="ml_default"
                 onSuccess={(result: any) => {
                   setLogoUrl(result?.info?.secure_url ?? null);
                 }}
@@ -217,7 +217,7 @@ export default function SignupPage() {
                 "Sign Up"
               )}
             </Button>
-            
+
             <p className="text-sm text-on-surface-variant mt-2">
               Already have an account?{" "}
               <Link href="/login" className="text-on-surface hover:text-on-surface-variant hover:underline font-semibold">
