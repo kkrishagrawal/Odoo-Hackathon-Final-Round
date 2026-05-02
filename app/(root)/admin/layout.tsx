@@ -3,9 +3,9 @@ import TopBar from "@/components/TopBar";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen bg-background-custom overflow-hidden">
+    <div className="flex h-screen overflow-hidden">
       <Sidebar role="admin" />
-      <main className="flex-1 flex flex-col bg-surface-bright overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden">
         <TopBar />
         <div className="flex-1 overflow-y-auto">
           {children}

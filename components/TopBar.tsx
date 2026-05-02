@@ -3,17 +3,16 @@
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useAttendance } from "@/components/attendance/AttendanceContext";
 
 function TopBarContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { isCheckedIn, checkInTime, elapsedTime, handleCheckIn, handleCheckOut } = useAttendance();
 
-  const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [showStatusPopup, setShowStatusPopup] = useState(false);
   const [showProfilePopup, setShowProfilePopup] = useState(false);
-  const [checkInTime, setCheckInTime] = useState<Date | null>(null);
-  const [elapsedTime, setElapsedTime] = useState("00:00:00");
   
   const [searchTerm, setSearchTerm] = useState(searchParams?.get("q") || "");
 
@@ -37,33 +36,14 @@ function TopBarContent() {
     return () => clearTimeout(timeoutId);
   }, [searchTerm, pathname, router, searchParams]);
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isCheckedIn && checkInTime) {
-      interval = setInterval(() => {
-        const now = new Date();
-        const diff = Math.floor((now.getTime() - checkInTime.getTime()) / 1000);
-        const hours = Math.floor(diff / 3600).toString().padStart(2, "0");
-        const minutes = Math.floor((diff % 3600) / 60).toString().padStart(2, "0");
-        const seconds = (diff % 60).toString().padStart(2, "0");
-        setElapsedTime(`${hours}:${minutes}:${seconds}`);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isCheckedIn, checkInTime]);
-
-  const handleCheckIn = () => {
-    setIsCheckedIn(true);
-    setCheckInTime(new Date());
+  const onCheckIn = () => {
+    handleCheckIn();
     setShowStatusPopup(false);
   };
 
-  const handleCheckOut = () => {
-    setIsCheckedIn(false);
-    setCheckInTime(null);
-    setElapsedTime("00:00:00");
+  const onCheckOut = () => {
+    handleCheckOut();
     setShowStatusPopup(false);
-    // In a real app, log the total hours worked
   };
 
   return (
@@ -96,7 +76,7 @@ function TopBarContent() {
             <div className="absolute top-10 right-0 w-64 bg-surface-container-lowest border border-outline-variant/30 rounded-xl shadow-[0_8px_30px_rgba(113,75,103,0.12)] p-4 z-50">
               {!isCheckedIn ? (
                 <button 
-                  onClick={handleCheckIn}
+                  onClick={onCheckIn}
                   className="w-full flex items-center justify-between bg-primary-container text-white px-4 py-3 rounded-lg font-label-md hover:bg-[#5A3C53] transition-colors"
                 >
                   Check IN <span className="material-symbols-outlined text-sm">arrow_forward</span>
@@ -108,7 +88,7 @@ function TopBarContent() {
                     <p className="font-h3 text-primary-container font-bold tracking-wider">{elapsedTime}</p>
                   </div>
                   <button 
-                    onClick={handleCheckOut}
+                    onClick={onCheckOut}
                     className="w-full flex items-center justify-between bg-error text-white px-4 py-3 rounded-lg font-label-md hover:bg-error/90 transition-colors"
                   >
                     Check Out <span className="material-symbols-outlined text-sm">arrow_forward</span>

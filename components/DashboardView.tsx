@@ -2,7 +2,8 @@
 
 import React, { Suspense } from "react";
 import EmployeeCard, { EmployeeStatus } from "@/components/EmployeeCard";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, usePathname } from "next/navigation";
+import Link from "next/link";
 
 const mockEmployees = [
   { id: 1, name: "Alice Johnson", role: "Software Engineer", status: "present" as EmployeeStatus },
@@ -18,6 +19,7 @@ const mockEmployees = [
 
 function DashboardContent() {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const query = searchParams?.get("q")?.toLowerCase() || "";
 
   const filteredEmployees = mockEmployees.filter(
@@ -37,12 +39,17 @@ function DashboardContent() {
       {filteredEmployees.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredEmployees.map((emp) => (
-            <EmployeeCard
-              key={emp.id}
-              name={emp.name}
-              role={emp.role}
-              status={emp.status}
-            />
+            <Link 
+              key={emp.id} 
+              href={`/${pathname?.split('/')[1] || "admin"}/employees/${emp.id}`}
+              className="block hover:-translate-y-1 transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-primary-container rounded-2xl"
+            >
+              <EmployeeCard
+                name={emp.name}
+                role={emp.role}
+                status={emp.status}
+              />
+            </Link>
           ))}
         </div>
       ) : (
