@@ -10,7 +10,7 @@ function TopBarContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { isCheckedIn, checkInTime, elapsedTime, handleCheckIn, handleCheckOut } = useAttendance();
+  const { isCheckedIn, isPaused, checkInTime, elapsedTime, handleCheckIn, handleCheckOut, handlePause, handleUnpause } = useAttendance();
   const { user, logout } = useAuth();
 
   const [showStatusPopup, setShowStatusPopup] = useState(false);
@@ -46,6 +46,14 @@ function TopBarContent() {
   const onCheckOut = () => {
     handleCheckOut();
     setShowStatusPopup(false);
+  };
+
+  const onPause = () => {
+    handlePause();
+  };
+
+  const onUnpause = () => {
+    handleUnpause();
   };
 
   const handleLogout = async () => {
@@ -85,11 +93,13 @@ function TopBarContent() {
               setShowStatusPopup(!showStatusPopup);
               setShowProfilePopup(false);
             }}
-            className={`w-5 h-5 rounded-full shadow-sm border-2 border-white transition-colors flex items-center justify-center ${isCheckedIn ? 'bg-green-500' : 'bg-red-500'}`}
+            className={`w-5 h-5 rounded-full shadow-sm border-2 border-white transition-colors flex items-center justify-center ${
+              isCheckedIn ? (isPaused ? 'bg-yellow-500 animate-pulse' : 'bg-green-500') : 'bg-red-500'
+            }`}
           />
           
           {showStatusPopup && (
-            <div className="absolute top-10 right-0 w-64 bg-surface-container-lowest border border-outline-variant/30 rounded-xl shadow-[0_8px_30px_rgba(113,75,103,0.12)] p-4 z-50">
+            <div className="absolute top-10 right-0 w-72 bg-surface-container-lowest border border-outline-variant/30 rounded-xl shadow-[0_8px_30px_rgba(113,75,103,0.12)] p-4 z-50">
               {!isCheckedIn ? (
                 <button 
                   onClick={onCheckIn}
@@ -98,11 +108,30 @@ function TopBarContent() {
                   Check IN <span className="material-symbols-outlined text-sm">arrow_forward</span>
                 </button>
               ) : (
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-3">
                   <div className="text-center bg-surface-container-low p-3 rounded-lg border border-outline-variant/20">
                     <p className="text-caption text-outline mb-1">Since {checkInTime?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                    <p className="font-h3 text-primary-container font-bold tracking-wider">{elapsedTime}</p>
+                    <p className={`font-h3 font-bold tracking-wider ${isPaused ? 'text-yellow-600' : 'text-primary-container'}`}>{elapsedTime}</p>
+                    {isPaused && <p className="text-xs text-yellow-600 font-medium mt-1">⏸ PAUSED</p>}
                   </div>
+                  
+                  {/* Pause / Resume button */}
+                  {isPaused ? (
+                    <button 
+                      onClick={onUnpause}
+                      className="w-full flex items-center justify-between bg-green-500 text-white px-4 py-3 rounded-lg font-label-md hover:bg-green-600 transition-colors"
+                    >
+                      Resume <span className="material-symbols-outlined text-sm">play_arrow</span>
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={onPause}
+                      className="w-full flex items-center justify-between bg-yellow-500 text-white px-4 py-3 rounded-lg font-label-md hover:bg-yellow-600 transition-colors"
+                    >
+                      Pause <span className="material-symbols-outlined text-sm">pause</span>
+                    </button>
+                  )}
+
                   <button 
                     onClick={onCheckOut}
                     className="w-full flex items-center justify-between bg-error text-white px-4 py-3 rounded-lg font-label-md hover:bg-error/90 transition-colors"

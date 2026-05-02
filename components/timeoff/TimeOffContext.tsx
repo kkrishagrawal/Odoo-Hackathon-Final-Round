@@ -22,6 +22,7 @@ interface TimeOffContextType {
   stats: { type: string; totalDays: number }[];
   loading: boolean;
   addRequest: (data: { type: string; startDate: string; endDate: string; days: string; note?: string; attachmentUrl?: string }) => Promise<void>;
+  updateRequest: (id: string, data: { type?: string; startDate?: string; endDate?: string; days?: string; note?: string; attachmentUrl?: string }) => Promise<void>;
   updateRequestStatus: (id: string, status: "APPROVED" | "REJECTED") => Promise<void>;
   refreshRequests: (mode: "my" | "all") => Promise<void>;
 }
@@ -88,6 +89,24 @@ export function TimeOffProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const updateRequest = useCallback(async (id: string, data: { type?: string; startDate?: string; endDate?: string; days?: string; note?: string; attachmentUrl?: string }) => {
+    try {
+      const res = await fetch(`/api/timeoff/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (res.ok && result.request) {
+        setRequests(prev => prev.map(r => r.id === id ? result.request : r));
+      } else {
+        console.error("Failed to update request:", result.error);
+      }
+    } catch (err) {
+      console.error("Error updating time-off request:", err);
+    }
+  }, []);
+
   const updateRequestStatus = useCallback(async (id: string, status: "APPROVED" | "REJECTED") => {
     try {
       const res = await fetch(`/api/timeoff/${id}`, {
@@ -107,7 +126,7 @@ export function TimeOffProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <TimeOffContext.Provider value={{ requests, stats, loading, addRequest, updateRequestStatus, refreshRequests }}>
+    <TimeOffContext.Provider value={{ requests, stats, loading, addRequest, updateRequest, updateRequestStatus, refreshRequests }}>
       {children}
     </TimeOffContext.Provider>
   );

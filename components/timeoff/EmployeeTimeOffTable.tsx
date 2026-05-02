@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useTimeOff, mapTypeDisplay } from "./TimeOffContext";
 import { useAuth } from "@/components/auth/AuthContext";
 import { useEffect } from "react";
+import { TimeOffDetailsModal } from "./TimeOffDetailsModal";
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-GB');
@@ -43,30 +44,32 @@ export function EmployeeTimeOffTable() {
         </TableHeader>
         <TableBody>
           {employeeRequests.map((req) => (
-            <TableRow key={req.id}>
-              <TableCell className="font-medium text-on-surface">{req.user?.name || user?.name || "—"}</TableCell>
-              <TableCell>{formatDate(req.startDate)}</TableCell>
-              <TableCell>{req.endDate ? formatDate(req.endDate) : "-"}</TableCell>
-              <TableCell className={req.type === "PAID" ? "text-[#4DA6FF] font-medium" : "text-secondary font-medium"}>
-                {mapTypeDisplay(req.type)}
-              </TableCell>
-              <TableCell>{Number(req.days)}</TableCell>
-              <TableCell>
-                {req.status === "PENDING" ? (
-                  <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20 px-3 py-0.5">
-                    PENDING
-                  </Badge>
-                ) : req.status === "APPROVED" ? (
-                  <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20 px-3 py-0.5">
-                    APPROVED
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-500/20 px-3 py-0.5">
-                    REJECTED
-                  </Badge>
-                )}
-              </TableCell>
-            </TableRow>
+            <TimeOffDetailsModal key={req.id} request={req} trigger={
+              <TableRow className="cursor-pointer hover:bg-surface-container-low/50">
+                <TableCell className="font-medium text-on-surface">{req.user?.name || user?.name || "—"}</TableCell>
+                <TableCell>{formatDate(req.startDate)}</TableCell>
+                <TableCell>{req.endDate ? formatDate(req.endDate) : "-"}</TableCell>
+                <TableCell className={req.type === "PAID" ? "text-[#4DA6FF] font-medium" : "text-secondary font-medium"}>
+                  {mapTypeDisplay(req.type)}
+                </TableCell>
+                <TableCell>{Number(req.days)}</TableCell>
+                <TableCell>
+                  {req.status === "PENDING" ? (
+                    <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20 px-3 py-0.5">
+                      PENDING
+                    </Badge>
+                  ) : req.status === "APPROVED" ? (
+                    <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20 px-3 py-0.5">
+                      APPROVED
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-500/20 px-3 py-0.5">
+                      REJECTED
+                    </Badge>
+                  )}
+                </TableCell>
+              </TableRow>
+            } />
           ))}
           {employeeRequests.length === 0 && (
             <TableRow>

@@ -32,12 +32,17 @@ export async function POST(req: NextRequest) {
   });
   if (!payrun) return NextResponse.json({ error: "Payrun not found" }, { status: 404 });
 
+  // Fetch global config for PF/Tax
+  const config = await prisma.payrollConfig.findUnique({
+    where: { companyId },
+  }) || { pfEmployeePct: 12, pfEmployerPct: 12, professionalTax: 200 };
+
   // Compute each payslip
   for (const payslip of payrun.payslips) {
     // Compute salary breakdown from salaryInfo
     const info = payslip.user.salaryInfo;
     if (!info) continue;
-    const breakdown = computeSalaryBreakdown(info);
+    const breakdown = computeSalaryBreakdown(info, config);
     await prisma.payslip.update({
       where: { id: payslip.id },
       data: {

@@ -9,7 +9,7 @@ export async function POST() {
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
 
     // Check if already checked in today
     const existing = await prisma.attendance.findUnique({

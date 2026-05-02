@@ -7,7 +7,7 @@ interface BreakEntry {
   resumedAt: string | null;
 }
 
-// POST /api/attendance/checkout — Check out for today
+// POST /api/attendance/pause — Pause the current work session
 export async function POST() {
   try {
     const userId = await getSession();
@@ -25,47 +25,38 @@ export async function POST() {
     }
 
     if (existing.checkOut) {
-      return NextResponse.json({ error: "Already checked out today", record: existing }, { status: 400 });
+      return NextResponse.json({ error: "Already checked out" }, { status: 400 });
     }
 
     const breaks = (existing.breaks as unknown as BreakEntry[]) || [];
-    let totalWorkHours = Number(existing.workHours) || 0;
 
-    // If currently paused, close the last break first
-    // workHours was already frozen at pause time — no extra active segment to add
+    // Check if already paused (last break has no resumedAt)
     if (breaks.length > 0 && breaks[breaks.length - 1].resumedAt === null) {
-      breaks[breaks.length - 1].resumedAt = now.toISOString();
-    } else {
-      // Not paused — add the current active segment
-      const lastResumeTime = breaks.length > 0 && breaks[breaks.length - 1].resumedAt
-        ? new Date(breaks[breaks.length - 1].resumedAt!).getTime()
-        : new Date(existing.checkIn).getTime();
-
-      const currentSegmentHrs = (now.getTime() - lastResumeTime) / (1000 * 60 * 60);
-      totalWorkHours = parseFloat((totalWorkHours + currentSegmentHrs).toFixed(2));
+      return NextResponse.json({ error: "Already paused", record: existing }, { status: 400 });
     }
 
-    const extraHours = parseFloat(Math.max(0, totalWorkHours - 8).toFixed(2));
+    // Calculate worked hours since last resume (or check-in) and add to existing workHours
+    const lastResumeTime = breaks.length > 0 && breaks[breaks.length - 1].resumedAt
+      ? new Date(breaks[breaks.length - 1].resumedAt!).getTime()
+      : new Date(existing.checkIn).getTime();
+
+    const currentSegmentHrs = (now.getTime() - lastResumeTime) / (1000 * 60 * 60);
+    const totalWorkHours = parseFloat(((Number(existing.workHours) || 0) + currentSegmentHrs).toFixed(2));
+
+    // Add new break entry
+    breaks.push({ pausedAt: now.toISOString(), resumedAt: null });
 
     const record = await prisma.attendance.update({
       where: { userId_date: { userId, date: today } },
       data: {
-        checkOut: now,
-        workHours: totalWorkHours,
-        extraHours: extraHours,
         breaks: breaks as any,
+        workHours: totalWorkHours,
       },
-    });
-
-    // Update user status
-    await prisma.user.update({
-      where: { id: userId },
-      data: { status: "ABSENT" },
     });
 
     return NextResponse.json({ record });
   } catch (err) {
-    console.error("Check-out error:", err);
+    console.error("Pause error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
