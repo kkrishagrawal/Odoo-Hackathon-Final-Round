@@ -11,7 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useTimeOff, mapTypeDisplay } from "./TimeOffContext";
 import { useAuth } from "@/components/auth/AuthContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-GB');
@@ -20,10 +20,18 @@ function formatDate(dateStr: string): string {
 export function AdminTimeOffTable() {
   const { requests, updateRequestStatus, refreshRequests } = useTimeOff();
   const { user } = useAuth();
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     refreshRequests("all");
   }, [refreshRequests]);
+
+  const filteredRequests = requests.filter(req => {
+    const nameMatch = (req.user?.name || req.userId).toLowerCase().includes(searchQuery.toLowerCase());
+    const typeMatch = req.type.toLowerCase().includes(searchQuery.toLowerCase());
+    const statusMatch = req.status.toLowerCase().includes(searchQuery.toLowerCase());
+    return nameMatch || typeMatch || statusMatch;
+  });
 
   // Determine if the current user can approve a given request
   const canApprove = (requesterRole: string): boolean => {
@@ -34,8 +42,21 @@ export function AdminTimeOffTable() {
   };
 
   return (
-    <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/30 shadow-sm overflow-hidden mt-6">
-      <Table>
+    <div className="mt-4">
+      <div className="flex justify-start mb-4">
+        <div className="relative w-full max-w-2xl">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-[18px]">search</span>
+          <input 
+            type="text" 
+            placeholder="Search by name, type, or status..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 bg-surface-container-low border border-outline-variant/30 rounded-full focus:outline-none focus:ring-1 focus:ring-primary-container text-sm text-on-surface"
+          />
+        </div>
+      </div>
+      <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/30 shadow-sm overflow-hidden">
+        <Table>
         <TableHeader>
           <TableRow className="bg-surface-container-low/50">
             <TableHead className="font-semibold text-on-surface">Name</TableHead>
@@ -47,7 +68,7 @@ export function AdminTimeOffTable() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {requests.map((req) => (
+          {filteredRequests.map((req) => (
             <TableRow key={req.id}>
               <TableCell className="font-medium text-on-surface">{req.user?.name || req.userId}</TableCell>
               <TableCell>{formatDate(req.startDate)}</TableCell>
@@ -86,15 +107,16 @@ export function AdminTimeOffTable() {
               </TableCell>
             </TableRow>
           ))}
-          {requests.length === 0 && (
+          {filteredRequests.length === 0 && (
             <TableRow>
               <TableCell colSpan={6} className="text-center py-6 text-on-surface-variant">
-                No time off requests found.
+                No time off requests found matching your search.
               </TableCell>
             </TableRow>
           )}
         </TableBody>
       </Table>
+    </div>
     </div>
   );
 }

@@ -348,14 +348,95 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
                     <div className="flex flex-wrap gap-2 mb-4">
                       {(displayUser?.skills && displayUser.skills.length > 0) ? (
                         displayUser.skills.map((skill) => (
-                          <span key={skill.id} className="px-3 py-1 bg-[#A463B0]/10 text-[#A463B0] rounded-full text-sm font-medium border border-[#A463B0]/20">{skill.name}</span>
+                          <span key={skill.id} className="px-3 py-1 bg-[#A463B0]/10 text-[#A463B0] rounded-full text-sm font-medium border border-[#A463B0]/20 inline-flex items-center gap-1.5">
+                            {skill.name}
+                            {isEditing && (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  await fetch(`/api/user/skills?id=${skill.id}`, { method: "DELETE" });
+                                  if (isViewingOther && targetUserId) {
+                                    const res = await fetch(`/api/user/${targetUserId}`);
+                                    const data = await res.json();
+                                    if (data.user) setTargetUser(data.user);
+                                  } else {
+                                    await refreshUser();
+                                  }
+                                }}
+                                className="hover:text-red-500 transition-colors"
+                                title="Remove skill"
+                              >
+                                <span className="material-symbols-outlined text-[14px]">close</span>
+                              </button>
+                            )}
+                          </span>
                         ))
                       ) : (
                         <p className="text-on-surface-variant text-sm italic">No skills added yet.</p>
                       )}
                     </div>
                   </div>
-                  {isEditing && <button type="button" className="text-[#A463B0] text-sm font-medium hover:underline flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">add</span> Add Skills</button>}
+                  {isEditing && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <input
+                        type="text"
+                        id="skill-input"
+                        placeholder="e.g. React, TypeScript, Node.js"
+                        className="flex-1 px-3 py-1.5 text-sm border border-outline-variant/30 rounded-md bg-surface-container-low focus:outline-none focus:border-primary-container text-on-surface"
+                        onKeyDown={async (e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            const input = e.currentTarget;
+                            const val = input.value.trim();
+                            if (!val) return;
+                            input.disabled = true;
+                            await fetch("/api/user/skills", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ skills: val, userId: isViewingOther ? targetUserId : undefined }),
+                            });
+                            input.value = "";
+                            input.disabled = false;
+                            if (isViewingOther && targetUserId) {
+                              const res = await fetch(`/api/user/${targetUserId}`);
+                              const data = await res.json();
+                              if (data.user) setTargetUser(data.user);
+                            } else {
+                              await refreshUser();
+                            }
+                            input.focus();
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const input = document.getElementById("skill-input") as HTMLInputElement;
+                          const val = input?.value?.trim();
+                          if (!val) return;
+                          input.disabled = true;
+                          await fetch("/api/user/skills", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ skills: val, userId: isViewingOther ? targetUserId : undefined }),
+                          });
+                          input.value = "";
+                          input.disabled = false;
+                          if (isViewingOther && targetUserId) {
+                            const res = await fetch(`/api/user/${targetUserId}`);
+                            const data = await res.json();
+                            if (data.user) setTargetUser(data.user);
+                          } else {
+                            await refreshUser();
+                          }
+                          input.focus();
+                        }}
+                        className="px-3 py-1.5 bg-[#A463B0] text-white rounded-md text-sm font-medium hover:bg-[#8A5294] transition-colors flex items-center gap-1"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">add</span> Add
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="border border-outline-variant/30 p-5 rounded-lg bg-surface-container-low/30">
@@ -369,7 +450,28 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
                               <p className="font-semibold text-on-surface text-sm">{cert.name}</p>
                               <p className="text-xs text-on-surface-variant mt-0.5">{cert.issuer || "—"}</p>
                             </div>
-                            <span className="text-xs font-medium text-on-surface-variant bg-surface-container-high px-2 py-1 rounded">{cert.year || "—"}</span>
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs font-medium text-on-surface-variant bg-surface-container-high px-2 py-1 rounded">{cert.year || "—"}</span>
+                              {isEditing && (
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    await fetch(`/api/user/certifications?id=${cert.id}`, { method: "DELETE" });
+                                    if (isViewingOther && targetUserId) {
+                                      const res = await fetch(`/api/user/${targetUserId}`);
+                                      const data = await res.json();
+                                      if (data.user) setTargetUser(data.user);
+                                    } else {
+                                      await refreshUser();
+                                    }
+                                  }}
+                                  className="text-outline hover:text-red-500 transition-colors"
+                                  title="Remove certification"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">delete</span>
+                                </button>
+                              )}
+                            </div>
                           </div>
                         ))
                       ) : (
@@ -377,7 +479,78 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
                       )}
                     </div>
                   </div>
-                  {isEditing && <button type="button" className="text-[#A463B0] text-sm font-medium hover:underline flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">add</span> Add Certification</button>}
+                  {isEditing && (
+                    <div className="flex flex-col gap-2 border-t border-outline-variant/30 pt-3">
+                      <div className="grid grid-cols-12 gap-2">
+                        <input
+                          type="text"
+                          id="cert-name"
+                          placeholder="Name (e.g. AWS Certified)"
+                          className="col-span-12 sm:col-span-5 px-3 py-1.5 text-sm border border-outline-variant/30 rounded-md bg-surface-container-low focus:outline-none focus:border-primary-container text-on-surface"
+                        />
+                        <input
+                          type="text"
+                          id="cert-issuer"
+                          placeholder="Issuer (Optional)"
+                          className="col-span-8 sm:col-span-4 px-3 py-1.5 text-sm border border-outline-variant/30 rounded-md bg-surface-container-low focus:outline-none focus:border-primary-container text-on-surface"
+                        />
+                        <input
+                          type="number"
+                          id="cert-year"
+                          placeholder="Year"
+                          className="col-span-4 sm:col-span-3 px-3 py-1.5 text-sm border border-outline-variant/30 rounded-md bg-surface-container-low focus:outline-none focus:border-primary-container text-on-surface"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const nameInput = document.getElementById("cert-name") as HTMLInputElement;
+                          const issuerInput = document.getElementById("cert-issuer") as HTMLInputElement;
+                          const yearInput = document.getElementById("cert-year") as HTMLInputElement;
+                          
+                          const name = nameInput?.value?.trim();
+                          const issuer = issuerInput?.value?.trim();
+                          const year = yearInput?.value?.trim();
+                          
+                          if (!name) return;
+                          
+                          nameInput.disabled = true;
+                          issuerInput.disabled = true;
+                          yearInput.disabled = true;
+                          
+                          await fetch("/api/user/certifications", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ 
+                              name, 
+                              issuer: issuer || undefined, 
+                              year: year || undefined,
+                              userId: isViewingOther ? targetUserId : undefined 
+                            }),
+                          });
+                          
+                          nameInput.value = "";
+                          issuerInput.value = "";
+                          yearInput.value = "";
+                          
+                          nameInput.disabled = false;
+                          issuerInput.disabled = false;
+                          yearInput.disabled = false;
+                          
+                          if (isViewingOther && targetUserId) {
+                            const res = await fetch(`/api/user/${targetUserId}`);
+                            const data = await res.json();
+                            if (data.user) setTargetUser(data.user);
+                          } else {
+                            await refreshUser();
+                          }
+                        }}
+                        className="self-end px-3 py-1.5 mt-1 bg-[#A463B0] text-white rounded-md text-sm font-medium hover:bg-[#8A5294] transition-colors flex items-center gap-1"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">add</span> Add Cert
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

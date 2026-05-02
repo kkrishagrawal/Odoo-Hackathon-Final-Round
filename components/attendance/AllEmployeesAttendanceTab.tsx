@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { useAttendance } from "./AttendanceContext";
 import { useAuth } from "@/components/auth/AuthContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 function formatTime(dateStr: string | null): string {
   if (!dateStr) return "-";
@@ -28,10 +28,16 @@ function formatHours(decimal: number | null): string {
 export function AllEmployeesAttendanceTab() {
   const { allRecords, todayRecord, elapsedTime, isCheckedIn, refreshAllRecords } = useAttendance();
   const { user } = useAuth();
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     refreshAllRecords();
   }, [refreshAllRecords]);
+
+  const filteredRecords = allRecords.filter(record => {
+    const nameMatch = (record.user?.name || record.userId).toLowerCase().includes(searchQuery.toLowerCase());
+    return nameMatch;
+  });
 
   return (
     <div className="space-y-4">
@@ -40,9 +46,21 @@ export function AllEmployeesAttendanceTab() {
         <div className="font-semibold text-primary-container text-sm uppercase tracking-wider">
           {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
         </div>
-        <div className="ml-auto bg-surface-container-low border border-outline-variant/30 px-4 py-1.5 rounded-md text-sm">
-          <span className="text-outline text-xs block leading-none mb-1">Total checked in today</span>
-          <span className="font-semibold text-primary-container">{allRecords.length + (todayRecord && !allRecords.find(r => r.id === todayRecord.id) ? 1 : 0)}</span>
+        <div className="ml-auto flex items-center gap-4">
+          <div className="relative w-64">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-[18px]">search</span>
+            <input 
+              type="text" 
+              placeholder="Search employee..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-1.5 bg-surface-container-low border border-outline-variant/30 rounded-full focus:outline-none focus:ring-1 focus:ring-primary-container text-sm text-on-surface"
+            />
+          </div>
+          <div className="bg-surface-container-low border border-outline-variant/30 px-4 py-1.5 rounded-md text-sm">
+            <span className="text-outline text-xs block leading-none mb-1">Total checked in today</span>
+            <span className="font-semibold text-primary-container">{allRecords.length + (todayRecord && !allRecords.find(r => r.id === todayRecord.id) ? 1 : 0)}</span>
+          </div>
         </div>
       </div>
 
@@ -70,7 +88,7 @@ export function AllEmployeesAttendanceTab() {
             </TableRow>
           )}
           {/* All employee records */}
-          {allRecords.map((record) => {
+          {filteredRecords.map((record) => {
             const isMe = record.userId === user?.id;
             return (
               <TableRow key={record.id} className={isMe ? "bg-primary-container/5 border-l-4 border-l-primary-container" : ""}>
@@ -94,10 +112,10 @@ export function AllEmployeesAttendanceTab() {
               </TableRow>
             );
           })}
-          {allRecords.length === 0 && !todayRecord && (
+          {filteredRecords.length === 0 && !todayRecord && (
             <TableRow>
               <TableCell colSpan={5} className="text-center py-6 text-on-surface-variant">
-                No attendance records for today.
+                No attendance records for today matching your search.
               </TableCell>
             </TableRow>
           )}
