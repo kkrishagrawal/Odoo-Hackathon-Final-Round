@@ -5,27 +5,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 // import { getUser, requireRoles } from "@/lib/auth";
-import { UserRole } from "@/lib/generated/prisma/client";
 
 export async function GET(req: NextRequest) {
   // const user = await getUser(req);
   // const authError = requireRoles(user, [UserRole.ADMIN, UserRole.PAYROLL_OFFICER]);
   // if (authError) return authError;
   // const companyId = user!.companyId;
-  const companyId = "REPLACE_WITH_REAL_COMPANY_ID";
+  const companyId = "cmoo5tzca00020cu1yq9v6fso";
 
-  const config = await prisma.payrollConfig.findUnique({ where: { companyId } });
+  const company = await prisma.company.findUnique({
+    where: { id: companyId },
+    select: { pfEmployeePct: true, pfEmployerPct: true, professionalTax: true },
+  });
 
-  // Return defaults if not configured yet
   return NextResponse.json({
-    config: config
+    config: company
       ? {
-          pfEmployeePct: config.pfEmployeePct.toNumber(),
-          pfEmployerPct: config.pfEmployerPct.toNumber(),
-          professionalTax: config.professionalTax.toNumber(),
-        }
+        pfEmployeePct: company.pfEmployeePct.toNumber(),
+        pfEmployerPct: company.pfEmployerPct.toNumber(),
+        professionalTax: company.professionalTax.toNumber(),
+      }
       : { pfEmployeePct: 12, pfEmployerPct: 12, professionalTax: 200 },
   });
+
 }
 
 export async function PUT(req: NextRequest) {
@@ -33,7 +35,7 @@ export async function PUT(req: NextRequest) {
   // const authError = requireRoles(user, [UserRole.ADMIN]);  // Admin only
   // if (authError) return authError;
   // const companyId = user!.companyId;
-  const companyId = "REPLACE_WITH_REAL_COMPANY_ID";
+  const companyId = "cmoo5tzca00020cu1yq9v6fso";
 
   const body = await req.json();
   const data = {
@@ -42,17 +44,17 @@ export async function PUT(req: NextRequest) {
     professionalTax: parseFloat(body.professionalTax) || 200,
   };
 
-  const config = await prisma.payrollConfig.upsert({
-    where: { companyId },
-    update: data,
-    create: { companyId, ...data },
+  const company = await prisma.company.update({
+    where: { id: companyId },
+    data,
   });
 
   return NextResponse.json({
     config: {
-      pfEmployeePct: config.pfEmployeePct.toNumber(),
-      pfEmployerPct: config.pfEmployerPct.toNumber(),
-      professionalTax: config.professionalTax.toNumber(),
+      pfEmployeePct: company.pfEmployeePct.toNumber(),
+      pfEmployerPct: company.pfEmployerPct.toNumber(),
+      professionalTax: company.professionalTax.toNumber(),
     },
   });
+
 }

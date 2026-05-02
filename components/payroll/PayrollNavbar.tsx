@@ -10,6 +10,7 @@ export default function PayrollNavbar() {
   const tabs = [
     { name: "Dashboard", href: "/admin/payroll/dashboard" },
     { name: "Payrun", href: "/admin/payroll/payrun" },
+    { name: "Configuration", href: "/admin/payroll/config" },
   ];
 
   return (

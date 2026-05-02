@@ -1,6 +1,6 @@
 // Computation helpers
 
-import { SalaryInfo, PayrollConfig } from "@/lib/generated/prisma/client";
+import { SalaryInfo } from "@/lib/generated/prisma/client";
 import { Prisma } from "@/lib/generated/prisma/client";
 
 type Decimal = Prisma.Decimal;

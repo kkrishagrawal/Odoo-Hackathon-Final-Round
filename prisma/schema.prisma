@@ -55,9 +55,11 @@ model Company {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  employees User[]
+  pfEmployeePct   Decimal @default(12) @db.Decimal(5, 2)
+  pfEmployerPct   Decimal @default(12) @db.Decimal(5, 2)
+  professionalTax Decimal @default(200) @db.Decimal(8, 2)
 
-  payrollConfig PayrollConfig?
+  employees User[]
 }
 
 // USER  (covers all roles)
@@ -185,13 +187,13 @@ model Certification {
 // One row = one check-in/check-out pair per day.
 
 model Attendance {
-  id           String    @id @default(cuid())
-  userId       String
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  date         DateTime  @db.Date        // calendar date of attendance
-  checkIn      DateTime?                 // full timestamp
-  checkOut     DateTime?                 // full timestamp
+  date       DateTime  @db.Date // calendar date of attendance
+  checkIn    DateTime? // full timestamp
+  checkOut   DateTime? // full timestamp
   // Computed fields stored for fast querying
   workHours    Decimal?  @db.Decimal(5, 2)
   extraHours   Decimal?  @db.Decimal(5, 2)
@@ -199,8 +201,8 @@ model Attendance {
   // Break tracking: JSON array of { pausedAt: ISO, resumedAt: ISO | null }
   breaks       Json      @default("[]")
 
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([userId, date])
   @@index([date])
@@ -309,20 +311,4 @@ model PasswordResetToken {
   expiresAt DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
-}
-
-model PayrollConfig {
-  id        String  @id @default(cuid())
-  companyId String  @unique
-  company   Company @relation(fields: [companyId], references: [id])
-
-  pfEmployeePct   Decimal @default(12) @db.Decimal(5, 2)
-  pfEmployerPct   Decimal @default(12) @db.Decimal(5, 2)
-  professionalTax Decimal @default(200) @db.Decimal(8, 2)
-
-  // remove this (explained below)
-  // maxStandardAllowancePct Decimal @default(50)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
