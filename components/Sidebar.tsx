@@ -50,7 +50,7 @@ export default function Sidebar({ role }: SidebarProps) {
     <aside className="w-64 bg-surface-container-lowest border-r border-outline-variant/30 h-screen flex flex-col sticky top-0 shadow-[4px_0_24px_rgba(113,75,103,0.02)]">
       <div className="h-20 flex items-center px-6 border-b border-outline-variant/20">
         <Link href="/" className="text-2xl font-black tracking-tight text-primary-container font-h1 antialiased">
-          EmPay
+          Em<span className="text-[#7e7574]">Pay</span>
         </Link>
       </div>
 

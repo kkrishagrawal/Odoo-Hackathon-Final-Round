@@ -3,18 +3,39 @@
 import React, { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { ScrollToPlugin } from "gsap/ScrollToPlugin";
 import Link from "next/link";
 import { useCompanyLogo } from "@/components/company-logo-provider";
+import Head from "next/head";
 
-gsap.registerPlugin(ScrollTrigger);
+// We need to register plugins to avoid errors
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
+}
 
 export default function Home() {
   const heroRef = useRef<HTMLDivElement>(null);
   const featuresRef = useRef<HTMLDivElement>(null);
-  const payslipRef = useRef<HTMLDivElement>(null);
-  const { logoUrl } = useCompanyLogo();
+  const rolesRef = useRef<HTMLDivElement>(null);
+  const glossaryRef = useRef<HTMLDivElement>(null);
+  const showcaseRef = useRef<HTMLDivElement>(null);
+  const showcaseWrapperRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
+    // Smooth scrolling using GSAP ScrollToPlugin for nav links
+    const links = document.querySelectorAll('nav a[href^="#"]');
+    const handleSmoothScroll = function (this: HTMLAnchorElement, e: Event) {
+      e.preventDefault();
+      const targetId = this.getAttribute("href");
+      if (targetId && targetId !== "#") {
+        gsap.to(window, { duration: 1, scrollTo: targetId, ease: "power3.inOut" });
+      }
+    };
+    links.forEach(link => {
+      link.addEventListener("click", handleSmoothScroll);
+    });
+
     // Hero Animations
     const heroCtx = gsap.context(() => {
       gsap.fromTo(
@@ -23,14 +44,14 @@ export default function Home() {
         { y: 0, opacity: 1, duration: 1, stagger: 0.2, ease: "power3.out" }
       );
       gsap.fromTo(
-        ".hero-image",
-        { y: 100, opacity: 0, scale: 0.95 },
-        { y: 0, opacity: 1, scale: 1, duration: 1.2, delay: 0.4, ease: "power3.out" }
+        ".hero-blob",
+        { opacity: 0, scale: 0.8 },
+        { opacity: 0.2, scale: 1, duration: 2, delay: 0.5, ease: "power2.out" }
       );
       gsap.fromTo(
-        ".hero-float",
-        { y: 20, opacity: 0 },
-        { y: 0, opacity: 1, duration: 1, delay: 1, stagger: 0.2, ease: "elastic.out(1, 0.7)" }
+        ".hero-mockup",
+        { y: 100, opacity: 0 },
+        { y: 0, opacity: 1, duration: 1.2, delay: 0.4, ease: "power3.out" }
       );
     }, heroRef);
 
@@ -48,288 +69,366 @@ export default function Home() {
           scrollTrigger: {
             trigger: featuresRef.current,
             start: "top 80%",
-          },
+          }
         }
       );
     }, featuresRef);
 
-    // Payslip Animations
-    const payslipCtx = gsap.context(() => {
+    // Roles Animations
+    const rolesCtx = gsap.context(() => {
       gsap.fromTo(
-        ".payslip-card",
+        ".role-card",
         { x: -50, opacity: 0 },
         {
           x: 0,
           opacity: 1,
-          duration: 1,
-          ease: "power3.out",
+          duration: 0.8,
+          stagger: 0.1,
+          ease: "power2.out",
           scrollTrigger: {
-            trigger: payslipRef.current,
-            start: "top 70%",
-          },
+            trigger: rolesRef.current,
+            start: "top 75%",
+          }
         }
       );
+    }, rolesRef);
+
+    // Glossary Animations
+    const glossaryCtx = gsap.context(() => {
       gsap.fromTo(
-        ".payslip-text",
-        { x: 50, opacity: 0 },
+        ".glossary-item",
+        { y: 30, opacity: 0 },
         {
-          x: 0,
+          y: 0,
           opacity: 1,
-          duration: 1,
-          ease: "power3.out",
+          duration: 0.6,
+          stagger: 0.1,
+          ease: "power2.out",
           scrollTrigger: {
-            trigger: payslipRef.current,
-            start: "top 70%",
-          },
+            trigger: glossaryRef.current,
+            start: "top 80%",
+          }
         }
       );
-    }, payslipRef);
+    }, glossaryRef);
+
+    // Showcase Animations (Vertical Overlap Scroll)
+    const showcaseCtx = gsap.context(() => {
+      const panels = gsap.utils.toArray<HTMLElement>('.showcase-panel');
+      if (panels.length === 0) return;
+
+      gsap.set(panels, { opacity: 0, y: 50, zIndex: (i, target, targets) => targets.length - i });
+      gsap.set(panels[0], { opacity: 1, y: 0 });
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: showcaseRef.current,
+          pin: true,
+          scrub: 1,
+          start: "top top",
+          end: () => "+=" + (window.innerHeight * panels.length * 1.5)
+        }
+      });
+
+      panels.forEach((panel, i) => {
+        if (i === 0) {
+          tl.to({}, { duration: 0.5 }); // pause for the first panel
+          return;
+        }
+
+        tl.to(panels[i - 1], { opacity: 0, y: -50, duration: 1 }, "transition" + i);
+        tl.to(panel, { opacity: 1, y: 0, duration: 1 }, "transition" + i);
+        tl.to({}, { duration: 0.5 }); // pause for user to read
+      });
+    }, showcaseRef);
+
+    // Header Hide/Show Bubbly Animation
+    const headerCtx = gsap.context(() => {
+      let isHidden = false;
+      ScrollTrigger.create({
+        start: "top -100", // Start after scrolling 100px down
+        end: 99999, // practically forever
+        onUpdate: (self) => {
+          if (self.direction === 1 && !isHidden) {
+            // Scrolling down -> hide with bubbly shrink
+            isHidden = true;
+            gsap.to(headerRef.current, {
+              y: -80,
+              scale: 0.8,
+              opacity: 0,
+              duration: 0.4,
+              ease: "back.in(2)",
+            });
+          } else if (self.direction === -1 && isHidden) {
+            // Scrolling up -> show with bubbly bounce
+            isHidden = false;
+            gsap.to(headerRef.current, {
+              y: 0,
+              scale: 1,
+              opacity: 1,
+              duration: 0.8,
+              ease: "elastic.out(1.2, 0.6)",
+            });
+          }
+        }
+      });
+    }, headerRef);
 
     return () => {
       heroCtx.revert();
       featuresCtx.revert();
-      payslipCtx.revert();
+      rolesCtx.revert();
+      glossaryCtx.revert();
+      showcaseCtx.revert();
+      headerCtx.revert();
+      links.forEach(link => {
+        link.removeEventListener("click", handleSmoothScroll);
+      });
     };
   }, []);
 
   return (
-    <div className="bg-background-custom text-on-background font-body-md min-h-screen flex flex-col">
-      {/* TopNavBar */}
-      <nav className="bg-white/90 dark:bg-slate-950/90 backdrop-blur-md sticky top-0 w-full z-50 border-b border-purple-50 dark:border-slate-800 shadow-[0_8px_30px_rgb(113,75,103,0.04)]">
-        <div className="flex justify-between items-center h-20 max-w-7xl mx-auto px-6 lg:px-12">
-          <div className="flex items-center gap-md">
-            <Link className="text-2xl font-black tracking-tight text-[#714B67] dark:text-white font-h1 antialiased" href="/">
-              {logoUrl ? (
-                <img src={logoUrl} alt="Company Logo" className="h-8 w-auto object-contain" />
-              ) : (
-                "EmPay"
-              )}
-            </Link>
-          </div>
-          <div className="hidden md:flex items-center gap-lg font-h1 antialiased">
-            <Link className="text-[#714B67] dark:text-white font-bold border-b-2 border-[#714B67] pb-1 hover:bg-purple-50 dark:hover:bg-slate-900 rounded-lg transition-all duration-200 px-3 py-2" href="#">
-              Features
-            </Link>
-            <Link className="text-slate-600 dark:text-slate-400 font-medium hover:text-[#714B67] hover:bg-purple-50 dark:hover:bg-slate-900 rounded-lg transition-all duration-200 px-3 py-2" href="#">
-              Solutions
-            </Link>
-            <Link className="text-slate-600 dark:text-slate-400 font-medium hover:text-[#714B67] hover:bg-purple-50 dark:hover:bg-slate-900 rounded-lg transition-all duration-200 px-3 py-2" href="#">
-              Pricing
-            </Link>
-          </div>
-          <div className="flex items-center gap-sm font-h1 antialiased">
-            <Link href="/login">
-              <button className="hidden md:block text-[#714B67] dark:text-[#a17a97] font-medium hover:bg-purple-50 dark:hover:bg-slate-900 rounded-lg transition-all duration-200 px-4 py-2 active:scale-95 transform transition-transform duration-150">
-                Login
-              </button>
-            </Link>
-            <Link href="/login">
-              <button className="bg-[#714B67] text-white font-medium rounded-lg px-5 py-2.5 hover:bg-[#5A3C53] transition-all duration-200 active:scale-95 transform transition-transform duration-150">
+    <>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Reenie+Beanie&display=swap');
+        
+        .font-outfit { font-family: 'Outfit', sans-serif; }
+        .font-reenie { font-family: 'Reenie Beanie', cursive; }
+        
+        /* Persistent SVG Grain Overlay */
+        .grain-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.04;
+            background-image: url('data:image/svg+xml;utf8,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E');
+        }
+
+        .rotate-minus-2 { transform: rotate(-2deg); }
+      `}} />
+
+      <div className="bg-[#F7F7F9] text-[#1F2937] font-outfit text-[18px] antialiased relative min-h-screen block scroll-smooth">
+        <div className="grain-overlay"></div>
+
+        {/* TopAppBar */}
+        <header ref={headerRef} className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-1">
+          <nav className="bg-white/70 dark:bg-stone-900/70 backdrop-blur-xl rounded-full mx-auto w-[92%] max-w-4xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)] flex items-center justify-between px-8 py-3 border border-outline-variant/30">
+            <Link className="text-2xl font-bold text-[#714B67] tracking-tight" href="/">Em<span className="text-[#7e7574]!">Pay</span></Link>
+            <div className="flex items-center gap-4">
+              <Link href="/login" className="bg-[#714B67] text-white px-6 py-2 rounded-full text-[14px] font-semibold hover:scale-105 hover:opacity-90 transition-all duration-300">
                 Get Started
-              </button>
-            </Link>
-          </div>
-        </div>
-      </nav>
+              </Link>
+              <Link href="https://www.youtube.com/watch?v=QDia3e12czc" className="text-[#7e7574] hover:text-[#FF0000] transition-all duration-300 hover:scale-110" title="Watch Demo">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor">
+                  <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 4-8 4z" />
+                </svg>
+              </Link>
+              <Link href="https://github.com/kkrishagrawal/Odoo-Hackathon-Final-Round/" className="hover:scale-105 hover:opacity-90 transition-all duration-300">
+                <svg viewBox="0 0 24 24" width="20" height="20">
+                  <path fill="currentColor" d="M12 .297c-6.628 0-12 5.373-12 12 0 5.252 3.429 9.778 8.205 11.385.6.111.828-.258.828-.577v-2.1c-3.335.734-4.037-1.646-4.037-1.646-.546-1.392-1.334-1.768-1.334-1.768-1.09-.744.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.223.694.825.576C20.566 22.045 24 17.522 24 12.297 24 5.373 18.628.297 12 .297z" />
+                </svg>
+              </Link>
+            </div>
+          </nav>
+        </header>
 
-      <main className="flex-grow">
-        {/* Hero Section */}
-        <section ref={heroRef} className="max-w-7xl mx-auto px-6 lg:px-12 pt-xl pb-xl flex flex-col items-center text-center">
-          <h1 className="hero-text font-h1 text-h1 text-on-background max-w-4xl mb-md">
-            <span className="font-display-handwritten text-display-handwritten marker-underline">Humanizing HR</span>, one click at a time.
-          </h1>
-          <p className="hero-text font-body-lg text-body-lg text-on-surface-variant max-w-2xl mb-lg">
-            EmPay simplifies HR & Payroll operations for smarter, more empathetic workplaces. Spend less time on spreadsheets and more time with your people.
-          </p>
-          <div className="hero-text flex flex-col sm:flex-row gap-md items-center justify-center w-full">
-            <button className="w-full sm:w-auto bg-primary-container text-white font-label-md text-label-md py-3 px-8 rounded-full shadow-[0_8px_16px_rgba(113,75,103,0.15)] hover:bg-[#5A3C53] transition-colors active:scale-95 flex items-center justify-center gap-2">
-              Get Started for Free
-              <span className="material-symbols-outlined text-sm">arrow_forward</span>
-            </button>
-            <button className="w-full sm:w-auto bg-surface-container-lowest text-primary-container border border-outline-variant font-label-md text-label-md py-3 px-8 rounded-full hover:bg-surface-container-low transition-colors active:scale-95 flex items-center justify-center gap-2">
-              <span className="material-symbols-outlined">play_circle</span>
-              Watch Demo
-            </button>
-          </div>
+        <main className="flex flex-col items-center w-full max-w-[1440px] mx-auto px-4 md:px-8">
 
-          {/* Hero Illustration */}
-          <div className="mt-xl w-full max-w-5xl relative hero-image">
-            <div className="bg-surface-container-lowest rounded-xl shadow-[0_20px_60px_rgba(113,75,103,0.08)] border border-outline-variant/30 overflow-hidden relative">
-              {/* Using standard img to avoid Next.js Image host config issues or styling differences */}
-              <img
-                alt="Dashboard Preview"
-                className="w-full h-auto object-cover opacity-90"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBtQ7gm8KqvaKOsCq8udXC7Udds1XtGBbQS1L0k-Q-msfXhBLGISxNbolZZpUAlUtvXe0z4uJS-wFypuJOHGcYXBt1UC88eiuOfOBiXtFzNG8X9EDwwIckOBLSZ5rLY-fWspPbpwlDBqb9CVsX5qWTA68SQnMZWxuwkdqh-6dlXsphxofvQ-OMDnnC560vF4_8KJK5_6i2JNBGeIYQScCLhlVSh8eiPv7YQRv3i9ajM1Irc7Y-7tZznnykNoNgfFFACViU4M-usygol"
-              />
-              
-              {/* Decorative Floating Elements */}
-              <div className="hero-float absolute top-1/4 -left-8 bg-surface-container-lowest p-sm rounded-lg shadow-[0_8px_30px_rgba(113,75,103,0.12)] border border-outline-variant/20 hidden md:flex items-center gap-sm transform -rotate-3">
-                <div className="w-8 h-8 rounded-full bg-[#F2A93B]/20 flex items-center justify-center text-[#F2A93B]">
-                  <span className="material-symbols-outlined text-sm">check_circle</span>
+          {/* Hero Section */}
+          <section ref={heroRef} id="hero" className="w-full min-h-[921px] flex flex-col items-center justify-center pt-32 pb-32 relative overflow-hidden">
+            {/* Blurred Blobs */}
+            <div className="hero-blob absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-[#F2A93B] rounded-full blur-3xl mix-blend-multiply -z-10 animate-[pulse_8s_ease-in-out_infinite]"></div>
+            <div className="hero-blob absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-[#2EB3E6] rounded-full blur-3xl mix-blend-multiply -z-10 animate-[pulse_10s_ease-in-out_infinite]"></div>
+
+            <div className="text-center mt-36 max-w-4xl z-10 flex flex-col items-center gap-8">
+              <h1 className="hero-text text-[80px] font-semibold leading-[1.0] tracking-[-0.03em] text-[#1F2937]">
+                Simplifying HRMS <br />
+                <span className="font-reenie text-[#F2A93B] transform inline-block rotate-minus-2 text-6xl mt-4">for Smarter Workplaces</span>
+              </h1>
+              <p className="hero-text text-[18px] leading-[1.6] text-[#1F2937]/70 max-w-2xl mx-auto">
+                Empowering organizations to build a seamless, secure, and intuitive HR ecosystem that centralizes payroll, attendance, and role management.
+              </p>
+              <div className="hero-text flex flex-col sm:flex-row items-center justify-center gap-4 mt-4 w-full sm:w-auto">
+                <Link href="/login" className="bg-[#714B67] text-white px-8 py-4 rounded-full text-[14px] font-semibold hover:scale-[1.02] transition-transform shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)] w-full sm:w-auto text-center">
+                  Start your journey
+                </Link>
+                <a href="#features" className="bg-white text-[#1F2937] border border-[#d1c3ca] px-8 py-4 rounded-full text-[14px] font-semibold hover:scale-[1.02] transition-transform w-full sm:w-auto text-center">
+                  Explore features
+                </a>
+              </div>
+            </div>
+
+            {/* High Fidelity Mockup Container */}
+            <div className="hero-mockup mt-64 w-full max-w-6xl rounded-[2rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.15)] relative overflow-hidden border border-[#d1c3ca]/30">
+              <img src="/employee-mobile.jpg" alt="EmPay Mobile Mockup" className="block md:hidden w-full h-auto object-cover" />
+              <img src="/employeestatus.png" alt="EmPay Dashboard Mockup" className="hidden md:block w-full h-auto object-cover" />
+              <div className="absolute inset-0 ring-1 ring-inset ring-black/5 rounded-[2rem]"></div>
+            </div>
+          </section>
+
+          {/* Features Section */}
+          <section ref={featuresRef} className="w-full py-24 flex flex-col items-center" id="features">
+            <h2 className="text-[48px] font-medium tracking-tight text-[#1F2937] mb-16 text-center">Core Modules</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl w-full">
+              {/* Feature 1 */}
+              <div className="feature-card bg-white p-10 rounded-2xl shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] flex flex-col gap-6 border border-[#d1c3ca]/30 hover:shadow-[0_12px_40px_-4px_rgba(113,75,103,0.1)] transition-all duration-300">
+                <div className="w-14 h-14 rounded-2xl bg-[#714B67]/10 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-[#714B67] text-3xl">manage_accounts</span>
                 </div>
                 <div>
-                  <p className="font-label-md text-caption text-on-surface">Payrun Approved</p>
-                  <p className="font-caption text-[10px] text-on-surface-variant">Just now</p>
+                  <h3 className="text-2xl font-medium text-[#1F2937] mb-3">User &amp; Role Management</h3>
+                  <p className="text-base text-[#1F2937]/70 leading-relaxed">Secure, role-based access control for Admins, Employees, HR, and Payroll Officers. Ensure the right people have the right access.</p>
                 </div>
               </div>
-
-              {/* Hand-drawn arrow SVG */}
-              <svg className="hero-float absolute top-1/3 -right-12 hidden lg:block w-24 h-24 text-[#F2A93B]" fill="none" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 90 Q 40 50 90 20" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="3" />
-                <path d="M70 15 L 95 15 L 85 40" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
-                <text fill="currentColor" fontFamily="cursive" fontSize="14" x="10" y="95">Automated Payruns</text>
-              </svg>
-            </div>
-          </div>
-        </section>
-
-        {/* Features Bento Grid */}
-        <section ref={featuresRef} className="max-w-7xl mx-auto px-6 lg:px-12 py-xl">
-          <div className="text-center mb-lg">
-            <h2 className="font-h2 text-h2 text-on-background mb-sm">Everything you need, nothing you don't.</h2>
-            <p className="font-body-md text-body-md text-on-surface-variant max-w-2xl mx-auto">
-              Thoughtfully designed modules that adapt to your team's workflow.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-md">
-            {/* Feature 1: User Mgmt */}
-            <div className="feature-card bg-surface-container-lowest p-lg rounded-xl shadow-[0_8px_30px_rgba(113,75,103,0.04)] border border-outline-variant/30 flex flex-col items-start hover:shadow-[0_12px_40px_rgba(113,75,103,0.08)] transition-shadow duration-300">
-              <div className="w-12 h-12 rounded-full bg-primary-container/10 flex items-center justify-center text-primary-container mb-md">
-                <span className="material-symbols-outlined">group</span>
-              </div>
-              <h3 className="font-h3 text-h3 text-on-surface mb-xs">User & Role Management</h3>
-              <p className="font-body-md text-body-md text-on-surface-variant flex-grow">Secure and flexible access controls for every level of your organization.</p>
-            </div>
-
-            {/* Feature 2: Attendance */}
-            <div className="feature-card bg-surface-container-lowest p-lg rounded-xl shadow-[0_8px_30px_rgba(113,75,103,0.04)] border border-outline-variant/30 flex flex-col items-start hover:shadow-[0_12px_40px_rgba(113,75,103,0.08)] transition-shadow duration-300">
-              <div className="w-12 h-12 rounded-full bg-secondary-container/20 flex items-center justify-center text-on-secondary-container mb-md">
-                <span className="material-symbols-outlined">calendar_month</span>
-              </div>
-              <h3 className="font-h3 text-h3 text-on-surface mb-xs">Attendance & Leave</h3>
-              <p className="font-body-md text-body-md text-on-surface-variant flex-grow">Apply for time-off in seconds. Managers approve with a single tap.</p>
-            </div>
-
-            {/* Feature 3: Payroll */}
-            <div className="feature-card bg-surface-container-lowest p-lg rounded-xl shadow-[0_8px_30px_rgba(113,75,103,0.04)] border border-outline-variant/30 flex flex-col items-start hover:shadow-[0_12px_40px_rgba(113,75,103,0.08)] transition-shadow duration-300 md:col-span-2 lg:col-span-1">
-              <div className="w-12 h-12 rounded-full bg-[#F2A93B]/20 flex items-center justify-center text-[#b37a24] mb-md">
-                <span className="material-symbols-outlined">payments</span>
-              </div>
-              <h3 className="font-h3 text-h3 text-on-surface mb-xs">Payroll Management</h3>
-              <p className="font-body-md text-body-md text-on-surface-variant flex-grow">Automated payruns, compliant tax deductions, and instant payslips.</p>
-            </div>
-
-            {/* Feature 4: Analytics */}
-            <div className="feature-card bg-surface-container-lowest p-lg rounded-xl shadow-[0_8px_30px_rgba(113,75,103,0.04)] border border-outline-variant/30 flex flex-col sm:flex-row items-center gap-lg hover:shadow-[0_12px_40px_rgba(113,75,103,0.08)] transition-shadow duration-300 md:col-span-3">
-              <div className="flex-1">
-                <div className="w-12 h-12 rounded-full bg-tertiary-container/20 flex items-center justify-center text-on-tertiary-container mb-md">
-                  <span className="material-symbols-outlined">analytics</span>
+              {/* Feature 2 */}
+              <div className="feature-card bg-white p-10 rounded-2xl shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] flex flex-col gap-6 border border-[#d1c3ca]/30 hover:shadow-[0_12px_40px_-4px_rgba(242,169,59,0.1)] transition-all duration-300 transform md:-translate-y-4">
+                <div className="w-14 h-14 rounded-2xl bg-[#F2A93B]/10 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-[#F2A93B] text-3xl">event_available</span>
                 </div>
-                <h3 className="font-h3 text-h3 text-on-surface mb-xs">Dashboard & Analytics</h3>
-                <p className="font-body-md text-body-md text-on-surface-variant">
-                  Data-driven workforce decisions. Understand trends in attendance, turnover, and payroll costs at a glance.
-                </p>
+                <div>
+                  <h3 className="text-2xl font-medium text-[#1F2937] mb-3">Attendance &amp; Leave</h3>
+                  <p className="text-base text-[#1F2937]/70 leading-relaxed">Streamlined workflows for leave requests, automated attendance logging, and transparent tracking for both employees and managers.</p>
+                </div>
               </div>
-              <div className="flex-1 w-full bg-surface-container-low rounded-lg h-40 border border-outline-variant/20 flex items-center justify-center relative overflow-hidden">
-                <div className="w-3/4 h-24 flex items-end gap-2 opacity-50">
-                  <div className="w-1/5 bg-primary-container h-1/3 rounded-t-sm" />
-                  <div className="w-1/5 bg-primary-container h-2/3 rounded-t-sm" />
-                  <div className="w-1/5 bg-secondary-container h-1/2 rounded-t-sm" />
-                  <div className="w-1/5 bg-primary-container h-full rounded-t-sm" />
-                  <div className="w-1/5 bg-[#F2A93B] h-4/5 rounded-t-sm" />
+              {/* Feature 3 */}
+              <div className="feature-card bg-white p-10 rounded-2xl shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] flex flex-col gap-6 border border-[#d1c3ca]/30 hover:shadow-[0_12px_40px_-4px_rgba(46,179,230,0.1)] transition-all duration-300">
+                <div className="w-14 h-14 rounded-2xl bg-[#2EB3E6]/10 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-[#2EB3E6] text-3xl">payments</span>
+                </div>
+                <div>
+                  <h3 className="text-2xl font-medium text-[#1F2937] mb-3">Payroll &amp; Analytics</h3>
+                  <p className="text-base text-[#1F2937]/70 leading-relaxed">Automated payruns, detailed payslips, accurate PF/Tax calculations, and comprehensive analytics for data-driven decisions.</p>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Visual Highlight Section (Payslip) */}
-        <section ref={payslipRef} className="bg-surface-container-low py-xl border-y border-outline-variant/20 overflow-hidden">
-          <div className="max-w-7xl mx-auto px-6 lg:px-12 flex flex-col md:flex-row items-center gap-xl">
-            <div className="payslip-card flex-1 w-full relative">
-              {/* Glassmorphism Payslip Card */}
-              <div className="bg-surface-container-lowest/80 backdrop-blur-xl p-lg rounded-xl shadow-[0_20px_40px_rgba(113,75,103,0.08)] border border-outline-variant/40 relative z-10">
-                <div className="flex justify-between items-start mb-md pb-sm border-b border-outline-variant/30">
+          {/* Role Breakdown Section */}
+          <section ref={rolesRef} className="w-full py-24 bg-[#714B67]/5 flex flex-col items-center rounded-3xl my-12" id="roles">
+            <div className="max-w-6xl w-full px-8">
+              <div className="text-center mb-16">
+                <h2 className="text-[48px] font-medium text-[#1F2937] mb-4">Empowering Every Role</h2>
+                <p className="text-lg text-[#1F2937]/70 max-w-2xl mx-auto">Tailored interfaces and permissions designed specifically for the unique needs of your team.</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="role-card bg-white p-8 rounded-2xl border border-stone-200 flex gap-6 items-start">
+                  <div className="p-4 bg-stone-100 rounded-xl text-[#714B67]">
+                    <span className="material-symbols-outlined text-3xl">admin_panel_settings</span>
+                  </div>
                   <div>
-                    <h4 className="font-label-md text-label-md text-on-surface">Payslip</h4>
-                    <p className="font-caption text-caption text-on-surface-variant">October 2024</p>
-                  </div>
-                  <span className="material-symbols-outlined text-outline">download</span>
-                </div>
-                <div className="space-y-sm mb-lg">
-                  <div className="flex justify-between items-center">
-                    <span className="font-body-md text-body-md text-on-surface-variant">Basic Salary</span>
-                    <span className="font-body-md text-body-md text-on-surface font-medium">$4,500.00</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="font-body-md text-body-md text-on-surface-variant">Provident Fund (PF)</span>
-                    <span className="font-body-md text-body-md text-error">-$225.00</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="font-body-md text-body-md text-on-surface-variant">Professional Tax</span>
-                    <span className="font-body-md text-body-md text-error">-$50.00</span>
+                    <h4 className="text-xl font-semibold mb-2">System Admin</h4>
+                    <p className="text-[#1F2937]/70 text-base">Full system oversight. Manages global settings, permissions, and ensures overall platform security and configuration.</p>
                   </div>
                 </div>
-                <div className="flex justify-between items-center pt-sm border-t border-outline-variant/30 relative">
-                  <span className="font-label-md text-label-md text-on-surface">Net Pay</span>
-                  <span className="font-h3 text-h3 text-primary-container">$4,225.00</span>
-                  
-                  {/* Verified Scribble */}
-                  <div className="absolute -right-6 -bottom-6 transform rotate-12 text-[#2EB3E6]">
-                    <svg fill="none" height="60" viewBox="0 0 100 100" width="60" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M20 50 L 40 70 L 80 30" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="6" />
-                      <circle cx="50" cy="50" fill="none" r="45" stroke="currentColor" strokeDasharray="8 4" strokeWidth="2" />
-                      <text fill="currentColor" fontFamily="cursive" fontSize="12" x="35" y="85">Verified</text>
-                    </svg>
+                <div className="role-card bg-white p-8 rounded-2xl border border-stone-200 flex gap-6 items-start">
+                  <div className="p-4 bg-stone-100 rounded-xl text-[#F2A93B]">
+                    <span className="material-symbols-outlined text-3xl">groups</span>
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-semibold mb-2">HR Manager</h4>
+                    <p className="text-[#1F2937]/70 text-base">Handles employee lifecycle, leave approvals, policy enforcement, and general workforce management workflows.</p>
+                  </div>
+                </div>
+                <div className="role-card bg-white p-8 rounded-2xl border border-stone-200 flex gap-6 items-start">
+                  <div className="p-4 bg-stone-100 rounded-xl text-[#2EB3E6]">
+                    <span className="material-symbols-outlined text-3xl">account_balance</span>
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-semibold mb-2">Payroll Officer</h4>
+                    <p className="text-[#1F2937]/70 text-base">Executes payruns, manages tax compliance, handles PF calculations, and generates financial reporting.</p>
+                  </div>
+                </div>
+                <div className="role-card bg-white p-8 rounded-2xl border border-stone-200 flex gap-6 items-start">
+                  <div className="p-4 bg-stone-100 rounded-xl text-stone-600">
+                    <span className="material-symbols-outlined text-3xl">person</span>
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-semibold mb-2">Employee</h4>
+                    <p className="text-[#1F2937]/70 text-base">Self-service portal to view payslips, request leave, log attendance, and manage personal information.</p>
                   </div>
                 </div>
               </div>
-              {/* Decorative background blob */}
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-primary-container/10 rounded-full blur-3xl -z-10" />
+            </div>
+          </section>
+        </main>
+
+        {/* Showcase Section */}
+        <section ref={showcaseRef} className="w-full h-screen bg-[#1F2937] text-white flex items-center overflow-hidden relative" id="showcase">
+          <div ref={showcaseWrapperRef} className="relative w-full h-full">
+            {/* Panel 1 */}
+            <div className="showcase-panel absolute inset-0 w-full h-full flex flex-col md:flex-row items-center justify-center">
+              <div className="absolute top-12 left-8 md:top-14 md:left-20 max-w-2xl z-10">
+                <h2 className="text-[48px] md:text-[64px] font-bold mb-4 leading-tight drop-shadow-lg">User Creation</h2>
+                <p className="text-[18px] md:text-[20px] text-white/90 leading-relaxed drop-shadow-md">Seamlessly onboard new employees and define role-based access controls instantly with our intuitive admin interface.</p>
+              </div>
+              <div className="w-[90%] md:w-[65%] h-[65%] md:h-[70%] md:translate-x-48 md:translate-y-24">
+                <img src="/usercreation.png" alt="User Creation" className="w-full h-full object-cover object-left-top rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.6)] border border-white/10" />
+              </div>
+            </div>
+            
+            {/* Panel 2 */}
+            <div className="showcase-panel absolute inset-0 w-full h-full flex flex-col md:flex-row items-center justify-center">
+              <div className="absolute top-12 left-8 md:top-14 md:left-20 max-w-2xl z-10">
+                <h2 className="text-[48px] md:text-[64px] font-bold mb-4 leading-tight drop-shadow-lg">Attendance Tracking</h2>
+                <p className="text-[18px] md:text-[20px] text-white/90 leading-relaxed drop-shadow-md">Monitor daily check-ins, active work hours, and overtime dynamically across your entire organization.</p>
+              </div>
+              <div className="w-[90%] md:w-[65%] h-[65%] md:h-[70%] md:translate-x-48 md:translate-y-24">
+                <img src="/attendance.png" alt="Attendance Tracking" className="w-full h-full object-cover object-left-top rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.6)] border border-white/10" />
+              </div>
+            </div>
+            
+            {/* Panel 3 */}
+            <div className="showcase-panel absolute inset-0 w-full h-full flex flex-col md:flex-row items-center justify-center">
+              <div className="absolute top-12 left-8 md:top-14 md:left-20 max-w-2xl z-10">
+                <h2 className="text-[48px] md:text-[64px] font-bold mb-4 leading-tight drop-shadow-lg">Time Off Management</h2>
+                <p className="text-[18px] md:text-[20px] text-white/90 leading-relaxed drop-shadow-md">Handle leave requests efficiently with hierarchical approvals, real-time status updates, and balance tracking.</p>
+              </div>
+              <div className="w-[90%] md:w-[65%] h-[65%] md:h-[70%] md:translate-x-48 md:translate-y-24">
+                <img src="/timeoff.png" alt="Time Off Management" className="w-full h-full object-cover object-left-top rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.6)] border border-white/10" />
+              </div>
+            </div>
+            
+            {/* Panel 4 */}
+            <div className="showcase-panel absolute inset-0 w-full h-full flex flex-col md:flex-row items-center justify-center">
+              <div className="absolute top-12 left-8 md:top-14 md:left-20 max-w-2xl z-10">
+                <h2 className="text-[48px] md:text-[64px] font-bold mb-4 leading-tight drop-shadow-lg">Payroll Processing</h2>
+                <p className="text-[18px] md:text-[20px] text-white/90 leading-relaxed drop-shadow-md">Automate salary, tax, and provident fund calculations seamlessly, turning payday into a one-click process.</p>
+              </div>
+              <div className="w-[90%] md:w-[65%] h-[65%] md:h-[70%] md:translate-x-48 md:translate-y-24">
+                <img src="/payroll.png" alt="Payroll Processing" className="w-full h-full object-cover object-left-top rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.6)] border border-white/10" />
+              </div>
             </div>
 
-            <div className="payslip-text flex-1">
-              <h2 className="font-h2 text-h2 text-on-background mb-sm">Transparent, instant payslips.</h2>
-              <p className="font-body-lg text-body-lg text-on-surface-variant mb-md">
-                Give your team clarity over their earnings. Our automated payslip generation breaks down complex deductions into easy-to-understand statements.
-              </p>
-              <ul className="space-y-sm mb-lg">
-                <li className="flex items-center gap-xs font-body-md text-body-md text-on-surface">
-                  <span className="material-symbols-outlined text-primary-container text-sm">check</span>
-                  1-Click Download & Email
-                </li>
-                <li className="flex items-center gap-xs font-body-md text-body-md text-on-surface">
-                  <span className="material-symbols-outlined text-primary-container text-sm">check</span>
-                  Auto-calculates local taxes
-                </li>
-                <li className="flex items-center gap-xs font-body-md text-body-md text-on-surface">
-                  <span className="material-symbols-outlined text-primary-container text-sm">check</span>
-                  Mobile-friendly view
-                </li>
-              </ul>
+            {/* Panel 5 */}
+            <div className="showcase-panel absolute inset-0 w-full h-full flex flex-col md:flex-row items-center justify-center">
+              <div className="absolute top-12 left-8 md:top-14 md:left-20 max-w-2xl z-10">
+                <h2 className="text-[48px] md:text-[64px] font-bold mb-4 leading-tight drop-shadow-lg">Employee Status</h2>
+                <p className="text-[18px] md:text-[20px] text-white/90 leading-relaxed drop-shadow-md">Get a quick overview of employee stats and comprehensive profile details instantly through unified dashboards.</p>
+              </div>
+              <div className="w-[90%] md:w-[65%] h-[65%] md:h-[70%] md:translate-x-48 md:translate-y-24">
+                <img src="/employeestatus.png" alt="Employee Status" className="w-full h-full object-cover object-left-top rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.6)] border border-white/10" />
+              </div>
             </div>
           </div>
         </section>
-      </main>
 
-      {/* Footer */}
-      <footer className="bg-stone-50 dark:bg-slate-950 w-full py-16 px-6 lg:px-12 border-t border-purple-100 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 font-h1 text-sm">
-          <div className="col-span-1 md:col-span-2">
-            <span className="text-xl font-bold text-[#714B67] dark:text-white mb-4 block">EmPay</span>
-            <p className="text-slate-500 dark:text-slate-400 font-body-md mt-sm">© 2024 EmPay HRMS. Humanizing HR, one click at a time.</p>
+        {/* Footer */}
+        <footer className="w-full bg-[#F7F7F9] pt-24 pb-12 border-t border-stone-200 flex flex-col items-center gap-6 px-8 text-center mt-auto z-10 relative">
+          <div className="flex gap-6 mb-4">
+            <a className="text-[12px] uppercase tracking-[0.1em] text-[#1F2937]/50 hover:text-[#714B67] transition-colors duration-200 font-semibold" href="#">Privacy Policy</a>
+            <a className="text-[12px] uppercase tracking-[0.1em] text-[#1F2937]/50 hover:text-[#714B67] transition-colors duration-200 font-semibold" href="#">Terms of Service</a>
+            <a className="text-[12px] uppercase tracking-[0.1em] text-[#1F2937]/50 hover:text-[#714B67] transition-colors duration-200 font-semibold" href="#">Support</a>
           </div>
-          <div className="col-span-1 flex flex-col gap-sm">
-            <Link className="text-slate-500 dark:text-slate-400 hover:text-[#714B67] hover:underline decoration-[#714B67] decoration-2 underline-offset-4 transition-all duration-300 py-1" href="#">Privacy Policy</Link>
-            <Link className="text-slate-500 dark:text-slate-400 hover:text-[#714B67] hover:underline decoration-[#714B67] decoration-2 underline-offset-4 transition-all duration-300 py-1" href="#">Terms of Service</Link>
-          </div>
-          <div className="col-span-1 flex flex-col gap-sm">
-            <Link className="text-slate-500 dark:text-slate-400 hover:text-[#714B67] hover:underline decoration-[#714B67] decoration-2 underline-offset-4 transition-all duration-300 py-1" href="#">Contact Us</Link>
-            <Link className="text-slate-500 dark:text-slate-400 hover:text-[#714B67] hover:underline decoration-[#714B67] decoration-2 underline-offset-4 transition-all duration-300 py-1" href="#">Careers</Link>
-          </div>
-        </div>
-      </footer>
-    </div>
+          <p className="text-[12px] uppercase tracking-[0.1em] text-[#1F2937]/40 font-semibold">
+            © 2024 EmPay. Smart HR for Modern Teams.
+          </p>
+        </footer>
+      </div>
+    </>
   );
 }

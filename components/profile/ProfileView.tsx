@@ -1,3 +1,4 @@
+"use client"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,7 +37,7 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
   const [loading, setLoading] = useState(!!targetUserId);
   const [targetUser, setTargetUser] = useState<AuthUser | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
-  
+
   // Password Reset State (Admin)
   const [requestingPassword, setRequestingPassword] = useState(false);
 
@@ -525,36 +526,36 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
                           const nameInput = document.getElementById("cert-name") as HTMLInputElement;
                           const issuerInput = document.getElementById("cert-issuer") as HTMLInputElement;
                           const yearInput = document.getElementById("cert-year") as HTMLInputElement;
-                          
+
                           const name = nameInput?.value?.trim();
                           const issuer = issuerInput?.value?.trim();
                           const year = yearInput?.value?.trim();
-                          
+
                           if (!name) return;
-                          
+
                           nameInput.disabled = true;
                           issuerInput.disabled = true;
                           yearInput.disabled = true;
-                          
+
                           await fetch("/api/user/certifications", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ 
-                              name, 
-                              issuer: issuer || undefined, 
+                            body: JSON.stringify({
+                              name,
+                              issuer: issuer || undefined,
                               year: year || undefined,
-                              userId: isViewingOther ? targetUserId : undefined 
+                              userId: isViewingOther ? targetUserId : undefined
                             }),
                           });
-                          
+
                           nameInput.value = "";
                           issuerInput.value = "";
                           yearInput.value = "";
-                          
+
                           nameInput.disabled = false;
                           issuerInput.disabled = false;
                           yearInput.disabled = false;
-                          
+
                           if (isViewingOther && targetUserId) {
                             const res = await fetch(`/api/user/${targetUserId}`);
                             const data = await res.json();
@@ -653,92 +654,92 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
 
           {/* Security Tab */}
           <TabsContent value="security" className="outline-none">
-               <div className="w-full p-8 sm:p-12 border border-outline-variant/30 rounded-xl text-center bg-surface-container-low/30 flex flex-col items-center">
-                 <span className="material-symbols-outlined text-5xl text-outline mb-3">lock</span>
-                 <h3 className="text-xl font-medium text-on-surface mb-2">Security Settings</h3>
-                 <p className="text-on-surface-variant mb-8">Manage your password and security credentials.</p>
-                 
-                 <div className="bg-surface-container-lowest border border-outline-variant/30 p-6 rounded-lg w-full max-w-[450px] text-left shadow-sm shrink-0">
-                    <h4 className="font-semibold text-lg mb-2 text-on-surface">Password Management</h4>
+            <div className="w-full p-8 sm:p-12 border border-outline-variant/30 rounded-xl text-center bg-surface-container-low/30 flex flex-col items-center">
+              <span className="material-symbols-outlined text-5xl text-outline mb-3">lock</span>
+              <h3 className="text-xl font-medium text-on-surface mb-2">Security Settings</h3>
+              <p className="text-on-surface-variant mb-8">Manage your password and security credentials.</p>
 
-                    {isAdmin ? (
-                      /* ── Admin: email-based reset link ── */
-                      <>
-                        <p className="text-sm text-on-surface-variant mb-6">Receive a secure link via email to change your password. The link will be valid for 2 hours.</p>
-                        <Button 
-                          onClick={handleRequestPasswordChange} 
-                          disabled={requestingPassword}
-                          className="bg-on-surface hover:bg-inverse-surface text-on-primary w-full"
-                        >
-                            {requestingPassword ? "Sending link..." : "Send Reset Link"}
-                        </Button>
-                      </>
-                    ) : (
-                      /* ── Non-Admin: direct new / confirm password fields ── */
-                      <>
-                        <p className="text-sm text-on-surface-variant mb-6">Enter a new password below to update your account password.</p>
+              <div className="bg-surface-container-lowest border border-outline-variant/30 p-6 rounded-lg w-full max-w-[450px] text-left shadow-sm shrink-0">
+                <h4 className="font-semibold text-lg mb-2 text-on-surface">Password Management</h4>
 
-                        <div className="space-y-4">
-                          <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-on-surface-variant">New Password</label>
-                            <div className="relative">
-                              <Input
-                                type={showNewPassword ? "text" : "password"}
-                                value={newPassword}
-                                onChange={(e) => setNewPassword(e.target.value)}
-                                placeholder="Min. 6 characters"
-                                className="pr-10"
-                              />
-                              <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface" onClick={() => setShowNewPassword(!showNewPassword)}>
-                                {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                              </button>
-                            </div>
-                          </div>
+                {isAdmin ? (
+                  /* ── Admin: email-based reset link ── */
+                  <>
+                    <p className="text-sm text-on-surface-variant mb-6">Receive a secure link via email to change your password. The link will be valid for 2 hours.</p>
+                    <Button
+                      onClick={handleRequestPasswordChange}
+                      disabled={requestingPassword}
+                      className="bg-on-surface hover:bg-inverse-surface text-on-primary w-full"
+                    >
+                      {requestingPassword ? "Sending link..." : "Send Reset Link"}
+                    </Button>
+                  </>
+                ) : (
+                  /* ── Non-Admin: direct new / confirm password fields ── */
+                  <>
+                    <p className="text-sm text-on-surface-variant mb-6">Enter a new password below to update your account password.</p>
 
-                          <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-on-surface-variant">Confirm Password</label>
-                            <div className="relative">
-                              <Input
-                                type={showConfirmNewPassword ? "text" : "password"}
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                placeholder="Re-enter password"
-                                className="pr-10"
-                              />
-                              <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface" onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}>
-                                {showConfirmNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                              </button>
-                            </div>
-                          </div>
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-on-surface-variant">New Password</label>
+                        <div className="relative">
+                          <Input
+                            type={showNewPassword ? "text" : "password"}
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            placeholder="Min. 6 characters"
+                            className="pr-10"
+                          />
+                          <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface" onClick={() => setShowNewPassword(!showNewPassword)}>
+                            {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
                         </div>
+                      </div>
 
-                        <Button
-                          onClick={async () => {
-                            setChangingPassword(true);
-                            try {
-                              const result = await changePasswordDirect(newPassword, confirmPassword);
-                              if (result.success) {
-                                toast.success("Password changed successfully!");
-                                setNewPassword("");
-                                setConfirmPassword("");
-                              } else {
-                                toast.error(result.error || "Failed to change password.");
-                              }
-                            } catch {
-                              toast.error("An unexpected error occurred.");
-                            } finally {
-                              setChangingPassword(false);
-                            }
-                          }}
-                          disabled={changingPassword || !newPassword || !confirmPassword}
-                          className="bg-on-surface hover:bg-inverse-surface text-on-primary w-full mt-6"
-                        >
-                          {changingPassword ? "Saving..." : "Save New Password"}
-                        </Button>
-                      </>
-                    )}
-                 </div>
-               </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-on-surface-variant">Confirm Password</label>
+                        <div className="relative">
+                          <Input
+                            type={showConfirmNewPassword ? "text" : "password"}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            placeholder="Re-enter password"
+                            className="pr-10"
+                          />
+                          <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface" onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}>
+                            {showConfirmNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={async () => {
+                        setChangingPassword(true);
+                        try {
+                          const result = await changePasswordDirect(newPassword, confirmPassword);
+                          if (result.success) {
+                            toast.success("Password changed successfully!");
+                            setNewPassword("");
+                            setConfirmPassword("");
+                          } else {
+                            toast.error(result.error || "Failed to change password.");
+                          }
+                        } catch {
+                          toast.error("An unexpected error occurred.");
+                        } finally {
+                          setChangingPassword(false);
+                        }
+                      }}
+                      disabled={changingPassword || !newPassword || !confirmPassword}
+                      className="bg-on-surface hover:bg-inverse-surface text-on-primary w-full mt-6"
+                    >
+                      {changingPassword ? "Saving..." : "Save New Password"}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
           </TabsContent>
         </div>
       </Tabs>
