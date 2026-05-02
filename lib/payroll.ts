@@ -77,23 +77,43 @@ export function scaleToPayableDays(
     totalWorkingDays: number
 ): SalaryBreakdown {
     if (totalWorkingDays === 0) return breakdown;
+
     const ratio = payableDays / totalWorkingDays;
 
+    const scaled = {
+        monthlyWage: breakdown.monthlyWage * ratio,
+        basicSalary: breakdown.basicSalary * ratio,
+        hra: breakdown.hra * ratio,
+        standardAllowance: breakdown.standardAllowance * ratio,
+        bonus: breakdown.bonus * ratio,
+        lta: breakdown.lta * ratio,
+        fixedAllowance: breakdown.fixedAllowance * ratio,
+        grossWage: breakdown.grossWage * ratio,
+        pfEmployee: breakdown.pfEmployee * ratio,
+        pfEmployer: breakdown.pfEmployer * ratio,
+    };
+
+    const professionalTax = breakdown.professionalTax;
+
+    const totalDeductions = scaled.pfEmployee + professionalTax;
+    const netWage = scaled.grossWage - totalDeductions;
+    const employerCost = scaled.monthlyWage + scaled.pfEmployer;
+
     return {
-        monthlyWage: round(breakdown.monthlyWage * ratio),
-        basicSalary: round(breakdown.basicSalary * ratio),
-        hra: round(breakdown.hra * ratio),
-        standardAllowance: round(breakdown.standardAllowance * ratio),
-        bonus: round(breakdown.bonus * ratio),
-        lta: round(breakdown.lta * ratio),
-        fixedAllowance: round(breakdown.fixedAllowance * ratio),
-        grossWage: round(breakdown.grossWage * ratio),
-        pfEmployee: round(breakdown.pfEmployee * ratio),
-        pfEmployer: round(breakdown.pfEmployer * ratio),
-        professionalTax: breakdown.professionalTax, // fixed, not scaled
-        totalDeductions: round(breakdown.pfEmployee * ratio + breakdown.professionalTax),
-        netWage: round(breakdown.grossWage * ratio - breakdown.pfEmployee * ratio - breakdown.professionalTax),
-        employerCost: round(breakdown.monthlyWage * ratio + breakdown.pfEmployer * ratio),
+        monthlyWage: round(scaled.monthlyWage),
+        basicSalary: round(scaled.basicSalary),
+        hra: round(scaled.hra),
+        standardAllowance: round(scaled.standardAllowance),
+        bonus: round(scaled.bonus),
+        lta: round(scaled.lta),
+        fixedAllowance: round(scaled.fixedAllowance),
+        grossWage: round(scaled.grossWage),
+        pfEmployee: round(scaled.pfEmployee),
+        pfEmployer: round(scaled.pfEmployer),
+        professionalTax: round(professionalTax),
+        totalDeductions: round(totalDeductions),
+        netWage: round(netWage),
+        employerCost: round(employerCost),
     };
 }
 

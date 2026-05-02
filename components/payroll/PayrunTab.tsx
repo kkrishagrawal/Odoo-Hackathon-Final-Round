@@ -17,6 +17,8 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 // Fetcher
 async function fetchPayrun() {
@@ -26,7 +28,8 @@ async function fetchPayrun() {
 }
 
 // Component
-export default function PayrunPage() {
+export default function PayrunTab() {
+  const router = useRouter();
   const queryClient = useQueryClient();
 
   const [month, setMonth] = useState(new Date().getMonth() + 1);
@@ -79,10 +82,31 @@ export default function PayrunPage() {
         body: JSON.stringify({ payrunId: data.id }),
       });
       if (!res.ok) throw new Error("Failed to validate payrun");
+      return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["payrun"] });
+      toast.success(`${data.validatedCount} payslip(s) validated`);
     },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: async () => {
+      if (!data?.id) return;
+      const res = await fetch("/api/payrun/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payrunId: data.id }),
+      });
+      if (!res.ok) throw new Error("Failed to cancel payrun");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["payrun"] });
+      toast.success(`${data.cancelledCount} payslip(s) cancelled`);
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   // UI
@@ -181,7 +205,11 @@ export default function PayrunPage() {
             )}
 
             {payslips.map((p: any) => (
-              <TableRow key={p.id}>
+              <TableRow
+                key={p.id}
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => router.push(`/admin/payroll/payrun/${p.id}`)}
+              >
                 <TableCell>
                   {formatPeriod(data.month, data.year)}
                 </TableCell>
