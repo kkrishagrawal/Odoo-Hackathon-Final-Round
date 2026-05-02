@@ -9,42 +9,46 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAttendance } from "./AttendanceContext";
+import { useEffect } from "react";
+
+function formatTime(dateStr: string | null): string {
+  if (!dateStr) return "-";
+  return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('en-GB');
+}
+
+function formatHours(decimal: number | null): string {
+  if (decimal === null || decimal === undefined) return "-";
+  const h = Math.floor(decimal);
+  const m = Math.round((decimal - h) * 60);
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+}
 
 export function EmployeeAttendanceTab() {
-  const { todayRecord } = useAttendance();
+  const { todayRecord, myRecords, elapsedTime, isCheckedIn, refreshMyRecords } = useAttendance();
 
-  const mockPastRecords = [
-    { id: "1", date: "28/10/2025", checkIn: "10:00", checkOut: "19:00", workHours: "09:00", extraHours: "01:00" },
-    { id: "2", date: "29/10/2025", checkIn: "10:00", checkOut: "19:00", workHours: "09:00", extraHours: "01:00" },
-  ];
+  useEffect(() => {
+    refreshMyRecords();
+  }, [refreshMyRecords]);
+
+  const presentCount = myRecords.filter(r => r.checkIn).length;
+  const totalDays = myRecords.length || presentCount;
 
   return (
     <div className="space-y-4">
       {/* Top Controls */}
       <div className="flex items-center gap-4 border-b border-outline-variant/20 pb-4">
-        <div className="flex bg-surface-container-low border border-outline-variant/30 rounded-md overflow-hidden">
-          <button className="px-3 py-1.5 hover:bg-surface-container-high transition-colors material-symbols-outlined text-sm">chevron_left</button>
-          <div className="w-px bg-outline-variant/30" />
-          <button className="px-3 py-1.5 hover:bg-surface-container-high transition-colors material-symbols-outlined text-sm">chevron_right</button>
-        </div>
-        
-        <select className="bg-surface-container-low border border-outline-variant/30 rounded-md px-3 py-1.5 text-sm font-medium">
-          <option>Oct</option>
-          <option>Nov</option>
-        </select>
-        
         <div className="flex gap-4 ml-auto">
           <div className="bg-surface-container-low border border-outline-variant/30 px-4 py-1.5 rounded-md text-sm">
-            <span className="text-outline text-xs block leading-none mb-1">Count of days present</span>
-            <span className="font-semibold text-primary-container">{todayRecord ? 23 : 22}</span>
+            <span className="text-outline text-xs block leading-none mb-1">Days present</span>
+            <span className="font-semibold text-primary-container">{presentCount}</span>
           </div>
           <div className="bg-surface-container-low border border-outline-variant/30 px-4 py-1.5 rounded-md text-sm">
-            <span className="text-outline text-xs block leading-none mb-1">Leaves count</span>
-            <span className="font-semibold">2</span>
-          </div>
-          <div className="bg-surface-container-low border border-outline-variant/30 px-4 py-1.5 rounded-md text-sm">
-            <span className="text-outline text-xs block leading-none mb-1">Total working days</span>
-            <span className="font-semibold">25</span>
+            <span className="text-outline text-xs block leading-none mb-1">Total records</span>
+            <span className="font-semibold">{totalDays}</span>
           </div>
         </div>
       </div>
@@ -56,28 +60,46 @@ export function EmployeeAttendanceTab() {
             <TableHead>Check In</TableHead>
             <TableHead>Check Out</TableHead>
             <TableHead>Work Hours</TableHead>
-            <TableHead>Extra hours</TableHead>
+            <TableHead>Extra Hours</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {todayRecord && (
+          {/* Today's live record */}
+          {todayRecord && todayRecord.checkIn && (
             <TableRow className="bg-primary-container/5 border-l-4 border-l-primary-container">
-              <TableCell className="font-medium text-primary-container">{todayRecord.date} (Today)</TableCell>
-              <TableCell>{todayRecord.checkIn?.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) || "-"}</TableCell>
-              <TableCell>{todayRecord.checkOut?.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) || "Active..."}</TableCell>
-              <TableCell className="font-bold">{todayRecord.workHours}</TableCell>
-              <TableCell>{todayRecord.extraHours}</TableCell>
+              <TableCell className="font-medium text-primary-container">
+                {formatDate(todayRecord.date)} (Today)
+              </TableCell>
+              <TableCell>{formatTime(todayRecord.checkIn)}</TableCell>
+              <TableCell>{todayRecord.checkOut ? formatTime(todayRecord.checkOut) : (isCheckedIn ? "Active..." : "-")}</TableCell>
+              <TableCell className="font-bold">
+                {todayRecord.checkOut ? formatHours(Number(todayRecord.workHours)) : elapsedTime.substring(0, 5)}
+              </TableCell>
+              <TableCell>{todayRecord.checkOut ? formatHours(Number(todayRecord.extraHours)) : "-"}</TableCell>
             </TableRow>
           )}
-          {mockPastRecords.map((record) => (
+          {/* Past records (exclude today) */}
+          {myRecords
+            .filter(r => {
+              if (!todayRecord) return true;
+              return r.id !== todayRecord.id;
+            })
+            .map((record) => (
             <TableRow key={record.id}>
-              <TableCell className="font-medium">{record.date}</TableCell>
-              <TableCell>{record.checkIn}</TableCell>
-              <TableCell>{record.checkOut}</TableCell>
-              <TableCell>{record.workHours}</TableCell>
-              <TableCell>{record.extraHours}</TableCell>
+              <TableCell className="font-medium">{formatDate(record.date)}</TableCell>
+              <TableCell>{formatTime(record.checkIn)}</TableCell>
+              <TableCell>{formatTime(record.checkOut)}</TableCell>
+              <TableCell>{formatHours(Number(record.workHours))}</TableCell>
+              <TableCell>{formatHours(Number(record.extraHours))}</TableCell>
             </TableRow>
           ))}
+          {myRecords.length === 0 && !todayRecord && (
+            <TableRow>
+              <TableCell colSpan={5} className="text-center py-6 text-on-surface-variant">
+                No attendance records found.
+              </TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
     </div>

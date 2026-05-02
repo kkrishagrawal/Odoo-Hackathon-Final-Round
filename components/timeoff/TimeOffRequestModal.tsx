@@ -19,34 +19,37 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useTimeOff } from "./TimeOffContext";
+import { useAuth } from "@/components/auth/AuthContext";
 
 export function TimeOffRequestModal() {
   const [open, setOpen] = useState(false);
   const { addRequest } = useTimeOff();
+  const { user } = useAuth();
   
   const [type, setType] = useState("Paid leave");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [days, setDays] = useState("1");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!startDate || !endDate) return;
+    setSubmitting(true);
     
-    // Convert YYYY-MM-DD to DD/MM/YYYY
-    const format = (d: string) => {
-      const [y, m, day] = d.split('-');
-      return `${day}/${m}/${y}`;
-    };
-
-    addRequest({
+    await addRequest({
       type,
-      start: format(startDate),
-      end: format(endDate)
+      startDate,
+      endDate,
+      days,
     });
+
     setOpen(false);
+    setSubmitting(false);
     
     // Reset form
     setStartDate("");
     setEndDate("");
+    setDays("1");
   };
 
   return (
@@ -68,7 +71,7 @@ export function TimeOffRequestModal() {
         <div className="grid gap-5 py-4 text-sm font-body-md">
           <div className="grid grid-cols-4 items-center gap-4">
             <span className="col-span-1 text-on-surface-variant font-medium">Employee</span>
-            <div className="col-span-3 text-on-surface font-semibold">[Current Employee]</div>
+            <div className="col-span-3 text-on-surface font-semibold">{user?.name || "—"}</div>
           </div>
           
           <div className="grid grid-cols-4 items-center gap-4">
@@ -109,7 +112,12 @@ export function TimeOffRequestModal() {
           <div className="grid grid-cols-4 items-center gap-4">
             <span className="col-span-1 text-on-surface-variant font-medium">Allocation</span>
             <div className="col-span-3 flex items-center gap-3">
-              <Input type="number" defaultValue="01.00" className="w-24 bg-surface-container-low border-outline-variant/30 text-on-surface" />
+              <Input 
+                type="number" 
+                value={days}
+                onChange={(e) => setDays(e.target.value)}
+                className="w-24 bg-surface-container-low border-outline-variant/30 text-on-surface" 
+              />
               <span className="text-on-surface-variant font-medium">Days</span>
             </div>
           </div>
@@ -128,8 +136,8 @@ export function TimeOffRequestModal() {
         </div>
         
         <div className="flex justify-start gap-3 mt-2 border-t border-outline-variant/20 pt-4">
-          <Button onClick={handleSubmit} className="bg-[#A463B0] hover:bg-[#8A5294] text-white rounded-md px-8 shadow-sm">
-            Submit
+          <Button onClick={handleSubmit} disabled={submitting} className="bg-[#A463B0] hover:bg-[#8A5294] text-white rounded-md px-8 shadow-sm">
+            {submitting ? "Submitting..." : "Submit"}
           </Button>
           <Button onClick={() => setOpen(false)} variant="ghost" className="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded-md px-6 border border-outline-variant/20">
             Discard

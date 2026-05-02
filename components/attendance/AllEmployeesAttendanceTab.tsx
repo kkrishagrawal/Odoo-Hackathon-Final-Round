@@ -9,68 +9,98 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAttendance } from "./AttendanceContext";
+import { useAuth } from "@/components/auth/AuthContext";
+import { useEffect } from "react";
+
+function formatTime(dateStr: string | null): string {
+  if (!dateStr) return "-";
+  return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatHours(decimal: number | null): string {
+  if (decimal === null || decimal === undefined) return "-";
+  const num = Number(decimal);
+  const h = Math.floor(num);
+  const m = Math.round((num - h) * 60);
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+}
 
 export function AllEmployeesAttendanceTab() {
-  const { todayRecord } = useAttendance();
+  const { allRecords, todayRecord, elapsedTime, isCheckedIn, refreshAllRecords } = useAttendance();
+  const { user } = useAuth();
 
-  const mockOtherEmployees = [
-    { id: "e1", name: "Alice Johnson", checkIn: "09:00", checkOut: "18:00", workHours: "09:00", extraHours: "01:00" },
-    { id: "e2", name: "Bob Smith", checkIn: "09:15", checkOut: "-", workHours: "Active...", extraHours: "-" },
-  ];
+  useEffect(() => {
+    refreshAllRecords();
+  }, [refreshAllRecords]);
 
   return (
     <div className="space-y-4">
       {/* Top Controls */}
       <div className="flex items-center gap-4 border-b border-outline-variant/20 pb-4">
-        <div className="flex bg-surface-container-low border border-outline-variant/30 rounded-md overflow-hidden">
-          <button className="px-3 py-1.5 hover:bg-surface-container-high transition-colors material-symbols-outlined text-sm">chevron_left</button>
-          <div className="w-px bg-outline-variant/30" />
-          <button className="px-3 py-1.5 hover:bg-surface-container-high transition-colors material-symbols-outlined text-sm">chevron_right</button>
+        <div className="font-semibold text-primary-container text-sm uppercase tracking-wider">
+          {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
         </div>
-        
-        <select className="bg-surface-container-low border border-outline-variant/30 rounded-md px-3 py-1.5 text-sm font-medium">
-          <option>Date</option>
-          <option>Month</option>
-        </select>
-
-        <button className="bg-surface-container-low border border-outline-variant/30 rounded-md px-4 py-1.5 text-sm font-medium hover:bg-surface-container-high transition-colors">
-          Day
-        </button>
-      </div>
-
-      <div className="font-semibold text-primary-container mb-2 text-sm uppercase tracking-wider">
-        {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+        <div className="ml-auto bg-surface-container-low border border-outline-variant/30 px-4 py-1.5 rounded-md text-sm">
+          <span className="text-outline text-xs block leading-none mb-1">Total checked in today</span>
+          <span className="font-semibold text-primary-container">{allRecords.length + (todayRecord && !allRecords.find(r => r.id === todayRecord.id) ? 1 : 0)}</span>
+        </div>
       </div>
 
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Emp</TableHead>
+            <TableHead>Employee</TableHead>
             <TableHead>Check In</TableHead>
             <TableHead>Check Out</TableHead>
             <TableHead>Work Hours</TableHead>
-            <TableHead>Extra hours</TableHead>
+            <TableHead>Extra Hours</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {todayRecord && (
+          {/* Current user's today record (highlighted) */}
+          {todayRecord && todayRecord.checkIn && !allRecords.find(r => r.id === todayRecord.id) && (
             <TableRow className="bg-primary-container/5 border-l-4 border-l-primary-container">
-              <TableCell className="font-medium text-primary-container">{todayRecord.empName} (You)</TableCell>
-              <TableCell>{todayRecord.checkIn?.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) || "-"}</TableCell>
-              <TableCell>{todayRecord.checkOut?.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) || "Active..."}</TableCell>
-              <TableCell className="font-bold">{todayRecord.workHours}</TableCell>
-              <TableCell>{todayRecord.extraHours}</TableCell>
+              <TableCell className="font-medium text-primary-container">{user?.name || "You"} (You)</TableCell>
+              <TableCell>{formatTime(todayRecord.checkIn)}</TableCell>
+              <TableCell>{todayRecord.checkOut ? formatTime(todayRecord.checkOut) : (isCheckedIn ? "Active..." : "-")}</TableCell>
+              <TableCell className="font-bold">
+                {todayRecord.checkOut ? formatHours(Number(todayRecord.workHours)) : elapsedTime.substring(0, 5)}
+              </TableCell>
+              <TableCell>{todayRecord.checkOut ? formatHours(Number(todayRecord.extraHours)) : "-"}</TableCell>
             </TableRow>
           )}
-          {mockOtherEmployees.map((record) => (
-            <TableRow key={record.id}>
-              <TableCell className="font-medium">{record.name}</TableCell>
-              <TableCell>{record.checkIn}</TableCell>
-              <TableCell>{record.checkOut}</TableCell>
-              <TableCell>{record.workHours}</TableCell>
-              <TableCell>{record.extraHours}</TableCell>
+          {/* All employee records */}
+          {allRecords.map((record) => {
+            const isMe = record.userId === user?.id;
+            return (
+              <TableRow key={record.id} className={isMe ? "bg-primary-container/5 border-l-4 border-l-primary-container" : ""}>
+                <TableCell className={`font-medium ${isMe ? "text-primary-container" : ""}`}>
+                  {record.user?.name || record.userId} {isMe ? "(You)" : ""}
+                </TableCell>
+                <TableCell>{formatTime(record.checkIn)}</TableCell>
+                <TableCell>
+                  {record.checkOut 
+                    ? formatTime(record.checkOut)
+                    : (isMe && isCheckedIn ? "Active..." : (!record.checkOut ? "Active..." : "-"))
+                  }
+                </TableCell>
+                <TableCell className={isMe ? "font-bold" : ""}>
+                  {record.checkOut 
+                    ? formatHours(Number(record.workHours)) 
+                    : (isMe ? elapsedTime.substring(0, 5) : "Active...")
+                  }
+                </TableCell>
+                <TableCell>{record.checkOut ? formatHours(Number(record.extraHours)) : "-"}</TableCell>
+              </TableRow>
+            );
+          })}
+          {allRecords.length === 0 && !todayRecord && (
+            <TableRow>
+              <TableCell colSpan={5} className="text-center py-6 text-on-surface-variant">
+                No attendance records for today.
+              </TableCell>
             </TableRow>
-          ))}
+          )}
         </TableBody>
       </Table>
     </div>

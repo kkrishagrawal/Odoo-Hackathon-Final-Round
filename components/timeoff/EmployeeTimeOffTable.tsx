@@ -9,13 +9,24 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useTimeOff } from "./TimeOffContext";
+import { useTimeOff, mapTypeDisplay } from "./TimeOffContext";
+import { useAuth } from "@/components/auth/AuthContext";
+import { useEffect } from "react";
+
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('en-GB');
+}
 
 export function EmployeeTimeOffTable() {
-  const { requests } = useTimeOff();
+  const { requests, refreshRequests } = useTimeOff();
+  const { user } = useAuth();
   
-  // Only show the requests belonging to the current employee
-  const employeeRequests = requests.filter(req => req.name === "[Current Employee]");
+  useEffect(() => {
+    refreshRequests("my");
+  }, [refreshRequests]);
+
+  // Filter only the current user's requests
+  const employeeRequests = requests.filter(req => req.userId === user?.id);
 
   return (
     <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/30 shadow-sm overflow-hidden mt-6">
@@ -26,22 +37,26 @@ export function EmployeeTimeOffTable() {
             <TableHead className="font-semibold text-on-surface">Start Date</TableHead>
             <TableHead className="font-semibold text-on-surface">End Date</TableHead>
             <TableHead className="font-semibold text-on-surface">Time off Type</TableHead>
+            <TableHead className="font-semibold text-on-surface">Days</TableHead>
             <TableHead className="font-semibold text-on-surface">Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {employeeRequests.map((req) => (
             <TableRow key={req.id}>
-              <TableCell className="font-medium text-on-surface">{req.name}</TableCell>
-              <TableCell>{req.start}</TableCell>
-              <TableCell>{req.end}</TableCell>
-              <TableCell className={req.type.includes("Paid") ? "text-[#4DA6FF] font-medium" : "text-secondary font-medium"}>{req.type}</TableCell>
+              <TableCell className="font-medium text-on-surface">{req.user?.name || user?.name || "—"}</TableCell>
+              <TableCell>{formatDate(req.startDate)}</TableCell>
+              <TableCell>{req.endDate ? formatDate(req.endDate) : "-"}</TableCell>
+              <TableCell className={req.type === "PAID" ? "text-[#4DA6FF] font-medium" : "text-secondary font-medium"}>
+                {mapTypeDisplay(req.type)}
+              </TableCell>
+              <TableCell>{Number(req.days)}</TableCell>
               <TableCell>
-                {req.status === "pending" ? (
+                {req.status === "PENDING" ? (
                   <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20 px-3 py-0.5">
                     PENDING
                   </Badge>
-                ) : req.status === "approved" ? (
+                ) : req.status === "APPROVED" ? (
                   <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20 px-3 py-0.5">
                     APPROVED
                   </Badge>
@@ -55,7 +70,7 @@ export function EmployeeTimeOffTable() {
           ))}
           {employeeRequests.length === 0 && (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-6 text-on-surface-variant">
+              <TableCell colSpan={6} className="text-center py-6 text-on-surface-variant">
                 No time off requests found.
               </TableCell>
             </TableRow>
