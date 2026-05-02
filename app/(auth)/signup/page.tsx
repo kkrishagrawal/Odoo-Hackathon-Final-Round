@@ -48,7 +48,7 @@ export default function SignupPage() {
 
     // Redirect after a short delay so user can see their Login ID
     setTimeout(() => {
-      router.push("/admin");
+      router.push("/admin/dashboard");
     }, 4000);
   }
 
@@ -119,8 +119,8 @@ export default function SignupPage() {
             </div>
           )}
 
-          <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-[150px_minmax(0,1fr)_40px] sm:items-center sm:gap-4 font-medium">
-            <label htmlFor="companyName" className="text-left sm:text-right text-on-surface-variant">
+          <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-[180px_minmax(0,1fr)_40px] sm:items-center sm:gap-4 font-medium">
+            <label htmlFor="companyName" className="text-left sm:text-right text-on-surface-variant whitespace-nowrap">
               Company Name :-
             </label>
             <Input id="companyName" name="companyName" type="text" required />
@@ -145,32 +145,32 @@ export default function SignupPage() {
             </div>
           </div>
 
-          <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-[150px_minmax(0,1fr)_40px] sm:items-center sm:gap-4 font-medium">
-            <label htmlFor="name" className="text-left sm:text-right text-on-surface-variant">
+          <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-[180px_minmax(0,1fr)_40px] sm:items-center sm:gap-4 font-medium">
+            <label htmlFor="name" className="text-left sm:text-right text-on-surface-variant whitespace-nowrap">
               Name :-
             </label>
             <Input id="name" name="name" type="text" required />
             <div className="hidden sm:block" />
           </div>
 
-          <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-[150px_minmax(0,1fr)_40px] sm:items-center sm:gap-4 font-medium">
-            <label htmlFor="email" className="text-left sm:text-right text-on-surface-variant">
+          <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-[180px_minmax(0,1fr)_40px] sm:items-center sm:gap-4 font-medium">
+            <label htmlFor="email" className="text-left sm:text-right text-on-surface-variant whitespace-nowrap">
               Email :-
             </label>
             <Input id="email" name="email" type="email" suppressHydrationWarning required />
             <div className="hidden sm:block" />
           </div>
 
-          <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-[150px_minmax(0,1fr)_40px] sm:items-center sm:gap-4 font-medium">
-            <label htmlFor="phone" className="text-left sm:text-right text-on-surface-variant">
+          <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-[180px_minmax(0,1fr)_40px] sm:items-center sm:gap-4 font-medium">
+            <label htmlFor="phone" className="text-left sm:text-right text-on-surface-variant whitespace-nowrap">
               Phone :-
             </label>
             <Input id="phone" name="phone" type="tel" />
             <div className="hidden sm:block" />
           </div>
 
-          <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-[150px_minmax(0,1fr)_40px] sm:items-center sm:gap-4 font-medium">
-            <label htmlFor="password" className="text-left sm:text-right text-on-surface-variant">
+          <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-[180px_minmax(0,1fr)_40px] sm:items-center sm:gap-4 font-medium">
+            <label htmlFor="password" className="text-left sm:text-right text-on-surface-variant whitespace-nowrap">
               Password :-
             </label>
             <Input id="password" name="password" type={showPassword ? "text" : "password"} required />
@@ -183,8 +183,8 @@ export default function SignupPage() {
             </button>
           </div>
 
-          <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-[150px_minmax(0,1fr)_40px] sm:items-center sm:gap-4 font-medium">
-            <label htmlFor="confirmPassword" className="text-left sm:text-right text-on-surface-variant">
+          <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-[180px_minmax(0,1fr)_40px] sm:items-center sm:gap-4 font-medium">
+            <label htmlFor="confirmPassword" className="text-left sm:text-right text-on-surface-variant whitespace-nowrap">
               Confirm Password :-
             </label>
             <Input
