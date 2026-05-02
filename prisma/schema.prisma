@@ -1,0 +1,323 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+// generator client {
+//   provider = "prisma-client"
+//   output   = "../lib/generated/prisma"
+// }
+
+//Schema for EmPay
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ENUMS
+
+enum UserRole {
+  ADMIN
+  HR_OFFICER
+  PAYROLL_OFFICER
+  EMPLOYEE
+}
+
+enum AttendanceStatus {
+  IN_OFFICE
+  ON_LEAVE
+  ABSENT
+}
+
+enum TimeOffType {
+  PAID
+  SICK
+  UNPAID
+}
+
+enum TimeOffStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PayslipStatus {
+  DRAFT
+  COMPUTED
+  VALIDATED
+  CANCELLED
+}
+
+// COMPANY
+// Supports multi-company if needed later;
+// for now one admin registers one company.
+
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  logoUrl     String?
+  // Derived prefix for Login ID generation (e.g. "OI" for "Odoo India")
+  loginPrefix String   @db.VarChar(4)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  employees User[]
+}
+
+// USER  (covers all roles)
+
+model User {
+  id              String           @id  // This IS the Login ID (e.g. OIJODO20220001)
+  name            String
+  email           String           @unique
+  personalEmail   String?
+  phone           String?
+  password        String           // bcrypt hash
+  role            UserRole
+  profilePicUrl   String?
+  status          AttendanceStatus @default(ABSENT)
+
+  // Company relationship
+  companyId       String
+  company         Company          @relation(fields: [companyId], references: [id])
+
+  // Work info
+  department      String?
+  jobPosition     String?
+  location        String?
+  managerId       String?
+  manager         User?            @relation("ManagerToEmployee", fields: [managerId], references: [id])
+  subordinates    User[]           @relation("ManagerToEmployee")
+  dateOfJoining   DateTime?
+
+  // Serial tracking for Login ID generation (stored per company+year, see JoiningSerial)
+  joiningYear     Int?
+
+  // Private info
+  dateOfBirth     DateTime?
+  residingAddress String?
+  nationality     String?
+  gender          String?
+  maritalStatus   String?
+
+  // Resume / Profile
+  about           String?
+  whatILove       String?
+  interests       String?
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  // Relations
+  bankDetails         BankDetails?
+  salaryInfo          SalaryInfo?
+  skills              Skill[]
+  certifications      Certification[]
+  attendanceRecords   Attendance[]
+  timeOffRequests     TimeOffRequest[]
+  payslips            Payslip[]
+  passwordResetTokens PasswordResetToken[]
+}
+
+// Tracks serial numbers per company+year for Login ID generation
+model JoiningSerial {
+  id        String @id @default(cuid())
+  companyId String
+  year      Int
+  lastSerial Int   @default(0)
+
+  @@unique([companyId, year])
+}
+
+// BANK DETAILS
+
+model BankDetails {
+  id            String  @id @default(cuid())
+  userId        String  @unique
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accountNumber String
+  bankName      String
+  ifscCode      String
+  panNumber     String
+  uanNumber     String?
+  employeeCode  String?
+}
+
+// SALARY INFO
+// One row per employee; amounts are derived
+// but stored as cache for payslip generation.
+
+model SalaryInfo {
+  id                String  @id @default(cuid())
+  userId            String  @unique
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Overview
+  monthlyWage       Decimal @db.Decimal(12, 2)
+  workingDaysPerWeek Int    @default(5)
+  breakTimeHrs      Decimal @db.Decimal(4, 2) @default(1)
+
+  // Salary component rates (percentages or fixed)
+  basicSalaryPct    Decimal @db.Decimal(5, 2) @default(50)   // % of monthlyWage
+  hraPct            Decimal @db.Decimal(5, 2) @default(50)   // % of basic
+  standardAllowance Decimal @db.Decimal(12, 2) @default(0)   // fixed ₹ amount
+  bonusPct          Decimal @db.Decimal(5, 2) @default(8.33) // % of basic
+  ltaPct            Decimal @db.Decimal(5, 2) @default(8.33) // % of basic
+  // fixedAllowance = wage - sum of all other components (computed on the fly)
+
+  // PF rates
+  pfEmployeePct     Decimal @db.Decimal(5, 2) @default(12)
+  pfEmployerPct     Decimal @db.Decimal(5, 2) @default(12)
+
+  // Professional tax (fixed)
+  professionalTax   Decimal @db.Decimal(8, 2) @default(200)
+}
+
+// SKILLS & CERTIFICATIONS  (Resume tab)
+
+model Skill {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name   String
+}
+
+model Certification {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name   String
+  issuer String?
+  year   Int?
+}
+
+// ATTENDANCE
+// One row = one check-in/check-out pair per day.
+
+model Attendance {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  date         DateTime  @db.Date        // calendar date of attendance
+  checkIn      DateTime?                 // full timestamp
+  checkOut     DateTime?                 // full timestamp
+  // Computed fields stored for fast querying
+  workHours    Decimal?  @db.Decimal(5, 2)
+  extraHours   Decimal?  @db.Decimal(5, 2)
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([userId, date])
+  @@index([date])
+}
+
+// TIME OFF REQUEST
+
+model TimeOffRequest {
+  id           String        @id @default(cuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type         TimeOffType
+  startDate    DateTime      @db.Date
+  endDate      DateTime?     @db.Date   // null = no limit
+  days         Decimal       @db.Decimal(5, 1)
+  status       TimeOffStatus @default(PENDING)
+  attachmentUrl String?                 // sick leave certificate
+  note         String?
+
+  reviewedBy   String?                  // userId of approver/rejecter
+  reviewedAt   DateTime?
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([userId, status])
+  @@index([startDate, endDate])
+}
+
+// PAYRUN
+// One payrun per company per calendar month.
+
+model Payrun {
+  id          String    @id @default(cuid())
+  companyId   String
+  month       Int       // 1–12
+  year        Int
+  status      PayslipStatus @default(DRAFT)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  payslips    Payslip[]
+
+  @@unique([companyId, month, year])
+}
+
+// PAYSLIP
+// One per employee per payrun.
+// Snapshot of all computed amounts at generation time.
+
+model Payslip {
+  id              String        @id @default(cuid())
+  payrunId        String
+  payrun          Payrun        @relation(fields: [payrunId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+
+  salaryStructure String        @default("Regular Pay")
+  status          PayslipStatus @default(DRAFT)
+
+  // Worked days snapshot
+  attendanceDays  Decimal       @db.Decimal(5, 1) @default(0)
+  paidLeaveDays   Decimal       @db.Decimal(5, 1) @default(0)
+  unpaidLeaveDays Decimal       @db.Decimal(5, 1) @default(0)
+  totalPayableDays Decimal      @db.Decimal(5, 1) @default(0)
+
+  // Earnings snapshot (₹)
+  monthlyWage     Decimal       @db.Decimal(12, 2)
+  basicSalary     Decimal       @db.Decimal(12, 2)
+  hra             Decimal       @db.Decimal(12, 2)
+  standardAllowance Decimal     @db.Decimal(12, 2)
+  bonus           Decimal       @db.Decimal(12, 2)
+  lta             Decimal       @db.Decimal(12, 2)
+  fixedAllowance  Decimal       @db.Decimal(12, 2)
+  grossWage       Decimal       @db.Decimal(12, 2)
+
+  // Deductions snapshot (₹)
+  pfEmployee      Decimal       @db.Decimal(12, 2)
+  pfEmployer      Decimal       @db.Decimal(12, 2)
+  professionalTax Decimal       @db.Decimal(8, 2)
+  tdsDeduction    Decimal       @db.Decimal(12, 2) @default(0)
+
+  // Totals
+  totalDeductions Decimal       @db.Decimal(12, 2)
+  netWage         Decimal       @db.Decimal(12, 2)
+  employerCost    Decimal       @db.Decimal(12, 2) // = monthlyWage + pfEmployer
+
+  validatedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([payrunId, userId])
+}
+
+// PASSWORD RESET TOKEN
+// Used for emailing auto-generated passwords
+// and managing password change flows.
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
