@@ -5,7 +5,7 @@ export default function EmployeePayrollPage() {
         <span className="material-symbols-outlined text-5xl text-outline">payments</span>
       </div>
       <h1 className="text-4xl font-h1 font-bold text-on-background mb-4">Coming Soon</h1>
-      <p className="text-on-surface-variant font-body-lg max-w-md">
+      <p className="text-on-surface-variant font-body-lg">
         The payroll module is currently under development. Soon you will be able to view and manage your payslips here.
       </p>
     </div>
