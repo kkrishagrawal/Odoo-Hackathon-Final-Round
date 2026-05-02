@@ -21,7 +21,7 @@ interface TimeOffContextType {
   requests: TimeOffRequest[];
   stats: { type: string; totalDays: number }[];
   loading: boolean;
-  addRequest: (data: { type: string; startDate: string; endDate: string; days: string; note?: string }) => Promise<void>;
+  addRequest: (data: { type: string; startDate: string; endDate: string; days: string; note?: string; attachmentUrl?: string }) => Promise<void>;
   updateRequestStatus: (id: string, status: "APPROVED" | "REJECTED") => Promise<void>;
   refreshRequests: (mode: "my" | "all") => Promise<void>;
 }
@@ -70,7 +70,7 @@ export function TimeOffProvider({ children }: { children: ReactNode }) {
     refreshRequests(mode);
   }, [user, refreshRequests]);
 
-  const addRequest = useCallback(async (data: { type: string; startDate: string; endDate: string; days: string; note?: string }) => {
+  const addRequest = useCallback(async (data: { type: string; startDate: string; endDate: string; days: string; note?: string; attachmentUrl?: string }) => {
     try {
       const res = await fetch("/api/timeoff", {
         method: "POST",

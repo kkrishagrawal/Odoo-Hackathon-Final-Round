@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTimeOff } from "./TimeOffContext";
 import { useAuth } from "@/components/auth/AuthContext";
 
@@ -30,7 +30,23 @@ export function TimeOffRequestModal() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [days, setDays] = useState("1");
+  const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      if (end >= start) {
+        // Calculate difference in days (inclusive)
+        const diffTime = Math.abs(end.getTime() - start.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        setDays(diffDays.toString());
+      } else {
+        setDays("0");
+      }
+    }
+  }, [startDate, endDate]);
 
   const handleSubmit = async () => {
     if (!startDate || !endDate) return;
@@ -41,6 +57,7 @@ export function TimeOffRequestModal() {
       startDate,
       endDate,
       days,
+      attachmentUrl: note,
     });
 
     setOpen(false);
@@ -50,6 +67,7 @@ export function TimeOffRequestModal() {
     setStartDate("");
     setEndDate("");
     setDays("1");
+    setNote("");
   };
 
   return (
@@ -122,15 +140,16 @@ export function TimeOffRequestModal() {
             </div>
           </div>
           
-          <div className="grid grid-cols-4 items-start gap-4">
-            <span className="col-span-1 text-on-surface-variant font-medium pt-2">Attachment</span>
-            <div className="col-span-3 flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <Button size="icon" variant="outline" className="bg-surface-container-low border-outline-variant/30 rounded-full h-8 w-8 hover:bg-surface-container-high transition-colors">
-                  <span className="material-symbols-outlined text-[16px] text-primary-container">upload</span>
-                </Button>
-                <span className="text-xs text-on-surface-variant italic">(For sick leave certificate)</span>
-              </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <span className="col-span-1 text-on-surface-variant font-medium">Note</span>
+            <div className="col-span-3">
+              <Input 
+                type="text" 
+                placeholder="Enter a note..." 
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className="bg-surface-container-low border-outline-variant/30 text-on-surface w-full" 
+              />
             </div>
           </div>
         </div>

@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     if (!sessionUserId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();
-    const { type, startDate, endDate, days, note } = body;
+    const { type, startDate, endDate, days, note, attachmentUrl } = body;
 
     if (!type || !startDate || !days) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -81,6 +81,7 @@ export async function POST(req: NextRequest) {
         endDate: endDate ? new Date(endDate) : null,
         days: parseFloat(days),
         note: note || null,
+        attachmentUrl: attachmentUrl || null,
         status: "PENDING",
       },
       include: { user: { select: { id: true, name: true, role: true } } },
