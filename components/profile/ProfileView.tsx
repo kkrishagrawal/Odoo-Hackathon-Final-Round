@@ -5,8 +5,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useTransition } from "react";
 import { useAuth, AuthUser } from "@/components/auth/AuthContext";
+import { requestPasswordReset } from "@/app/actions/security";
 
 interface ProfileViewProps {
   /** When set, fetch this user's profile instead of the logged-in user's */
@@ -32,6 +33,10 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
   const [loading, setLoading] = useState(!!targetUserId);
   const [targetUser, setTargetUser] = useState<AuthUser | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
+  
+  // Password Reset State
+  const [requestingPassword, setRequestingPassword] = useState(false);
+  const [passwordResetStatus, setPasswordResetStatus] = useState<{ type: "success" | "error" | "fallback", message: string, link?: string } | null>(null);
 
   // The user data to display: either the fetched target user or the logged-in user
   const displayUser = isViewingOther ? targetUser : authUser;
@@ -109,6 +114,27 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
     } finally {
       setSaving(false);
       setIsEditing(false);
+    }
+  };
+
+  const handleRequestPasswordChange = async () => {
+    setRequestingPassword(true);
+    setPasswordResetStatus(null);
+    try {
+      const result = await requestPasswordReset();
+      if (result.success) {
+        if (result.emailSent) {
+          setPasswordResetStatus({ type: "success", message: "Password reset link has been sent to your email." });
+        } else if (result.fallbackLink) {
+          setPasswordResetStatus({ type: "fallback", message: "SMTP delivery failed in dev mode. Use this link:", link: result.fallbackLink });
+        }
+      } else {
+        setPasswordResetStatus({ type: "error", message: result.error || "Failed to request password reset." });
+      }
+    } catch (err) {
+      setPasswordResetStatus({ type: "error", message: "An unexpected error occurred." });
+    } finally {
+      setRequestingPassword(false);
     }
   };
 
@@ -424,7 +450,7 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
           {/* Salary Info Tab */}
           <TabsContent value="salary-info" className="outline-none">
             {canViewSalaryAndSecurity ? (
-               <div className="p-12 border border-outline-variant/30 rounded-xl text-center bg-surface-container-low/30">
+               <div className="w-full p-12 border border-outline-variant/30 rounded-xl text-center bg-surface-container-low/30">
                  <span className="material-symbols-outlined text-5xl text-outline mb-3">payments</span>
                  <h3 className="text-xl font-medium text-on-surface mb-2">Salary Information</h3>
                  <p className="text-on-surface-variant">Confidential salary and compensation details.</p>
@@ -435,10 +461,39 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
           {/* Security Tab */}
           <TabsContent value="security" className="outline-none">
             {canViewSalaryAndSecurity ? (
-               <div className="p-12 border border-outline-variant/30 rounded-xl text-center bg-surface-container-low/30">
+               <div className="w-full p-8 sm:p-12 border border-outline-variant/30 rounded-xl text-center bg-surface-container-low/30 flex flex-col items-center">
                  <span className="material-symbols-outlined text-5xl text-outline mb-3">lock</span>
                  <h3 className="text-xl font-medium text-on-surface mb-2">Security Settings</h3>
-                 <p className="text-on-surface-variant">Password, 2FA and access control.</p>
+                 <p className="text-on-surface-variant mb-8">Manage your password and security credentials.</p>
+                 
+                 <div className="bg-surface-container-lowest border border-outline-variant/30 p-6 rounded-lg w-full max-w-[450px] text-left shadow-sm shrink-0">
+                    <h4 className="font-semibold text-lg mb-2 text-on-surface">Password Management</h4>
+                    <p className="text-sm text-on-surface-variant mb-6">Receive a secure link via email to change your password. The link will be valid for 2 hours.</p>
+                    <Button 
+                      onClick={handleRequestPasswordChange} 
+                      disabled={requestingPassword}
+                      className="bg-on-surface hover:bg-inverse-surface text-on-primary w-full"
+                    >
+                        {requestingPassword ? "Sending link..." : "Change Password"}
+                    </Button>
+                    
+                    {passwordResetStatus && (
+                      <div className={`mt-4 p-3 rounded text-sm ${
+                        passwordResetStatus.type === "error" ? "bg-red-50 text-red-600 border border-red-200" :
+                        passwordResetStatus.type === "success" ? "bg-green-50 text-green-700 border border-green-200" :
+                        "bg-amber-50 text-amber-800 border border-amber-200"
+                      }`}>
+                        <p>{passwordResetStatus.message}</p>
+                        {passwordResetStatus.link && (
+                          <div className="mt-2 bg-white border border-amber-200 p-2 rounded break-all">
+                            <a href={passwordResetStatus.link} target="_blank" rel="noreferrer" className="text-amber-600 hover:underline font-mono text-xs">
+                              {passwordResetStatus.link}
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                 </div>
                </div>
             ) : null}
           </TabsContent>

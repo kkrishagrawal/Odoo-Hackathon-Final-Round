@@ -170,3 +170,70 @@ export async function sendCredentialsEmail(
 
   return true;
 }
+
+export type SendPasswordResetOptions = {
+  to: string;
+  fullName: string;
+  resetLink: string;
+};
+
+export async function sendPasswordResetEmail(
+  options: SendPasswordResetOptions
+): Promise<boolean> {
+  const { to, fullName, resetLink } = options;
+
+  const from =
+    process.env.SMTP_FROM ||
+    process.env.SMTP_USER ||
+    "no-reply@empay.local";
+
+  const subject = `EmPay — Password Reset Request`;
+
+  const text = [
+    `Hello ${fullName},`,
+    "",
+    `We received a request to change your password for your EmPay account.`,
+    `Click the link below to set a new password. This link is valid for 2 hours.`,
+    "",
+    resetLink,
+    "",
+    "If you didn't request this, please ignore this email.",
+  ].join("\n");
+
+  const html = `
+    <div style="font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;max-width:520px;margin:0 auto;padding:32px;background:#fff7f9;border-radius:12px;border:1px solid #d1c3ca;">
+      <h2 style="color:#714b67;margin:0 0 8px 0;">Password Reset</h2>
+      <p style="color:#4e444a;margin:0 0 20px 0;">Hello <strong>${fullName}</strong>,</p>
+      <p style="color:#4e444a;margin:0 0 20px 0;">We received a request to change your password. Click the button below to set a new password. This link is valid for 2 hours.</p>
+
+      <p style="margin:0 0 24px 0;text-align:center;">
+        <a href="${resetLink}" style="display:inline-block;background:#714b67;color:#ffffff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;font-size:16px;">Reset Password</a>
+      </p>
+
+      <p style="color:#80747a;font-size:13px;margin:0;">If you didn't request this, please ignore this email.</p>
+    </div>
+  `;
+
+  const mailOptions = { from, to, subject, text, html };
+
+  let info: any;
+
+  try {
+    const activeTransporter = getTransporter();
+    info = await activeTransporter.sendMail(mailOptions);
+  } catch (error) {
+    if (process.env.NODE_ENV === "production") {
+      throw error;
+    }
+    console.warn("SMTP delivery failed in development. Falling back to JSON transport.", error);
+    transporter = nodemailer.createTransport({ jsonTransport: true });
+    info = await transporter.sendMail(mailOptions);
+  }
+
+  if (info?.message && process.env.NODE_ENV !== "production") {
+    console.log("📧 Password Reset email (JSON transport preview):\n", info.message.toString());
+    return false;
+  }
+
+  return true;
+}
