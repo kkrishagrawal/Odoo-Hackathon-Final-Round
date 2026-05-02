@@ -14,6 +14,7 @@ const roleMenus = {
     { name: "Dashboard", path: "/employee/dashboard", icon: "dashboard" },
     { name: "Attendance", path: "/employee/attendance", icon: "calendar_today" },
     { name: "Time Off", path: "/employee/leave", icon: "event_busy" },
+    { name: "Payroll", path: "/employee/payroll", icon: "payments" },
     { name: "My Profile", path: "/employee/profile", icon: "person" },
   ],
   hr: [
