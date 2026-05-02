@@ -108,7 +108,7 @@ function VoiceBars({
 
     for (let i = 0; i < BAR_COUNT; i++) {
       if (analyser && dataArr.current) {
-        analyser.getByteFrequencyData(dataArr.current);
+        analyser.getByteFrequencyData(dataArr.current as any);
         const lo   = 4;
         const hi   = Math.floor(dataArr.current.length * 0.55);
         const size = Math.max(1, Math.floor((hi - lo) / BAR_COUNT));
@@ -232,7 +232,7 @@ export default function EmVoice() {
   // Refs for animation phase
   const phaseRef    = useRef(0);
   const dirRef      = useRef(0);
-  const rafRef      = useRef<number>();
+  const rafRef      = useRef<number>(0);
 
   // Refs for audio / WebSocket
   const wsRef           = useRef<WebSocket | null>(null);
