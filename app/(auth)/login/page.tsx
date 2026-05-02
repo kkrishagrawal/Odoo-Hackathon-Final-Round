@@ -2,13 +2,56 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Eye, EyeOff } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCompanyLogo } from "@/components/company-logo-provider";
+import { login } from "../actions";
+
+/** Map role to its dashboard route */
+function getDashboardRoute(role: string): string {
+  switch (role) {
+    case "ADMIN":
+      return "/admin";
+    case "HR_OFFICER":
+      return "/hr";
+    case "PAYROLL_OFFICER":
+      return "/payroll";
+    case "EMPLOYEE":
+      return "/employee";
+    default:
+      return "/";
+  }
+}
 
 export default function LoginPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const { logoUrl } = useCompanyLogo();
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
+    const result = await login(formData);
+
+    setLoading(false);
+
+    if (!result.success) {
+      setError(result.error ?? "Login failed.");
+      return;
+    }
+
+    // Redirect based on role
+    const route = getDashboardRoute(result.role!);
+    router.push(route);
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
@@ -23,14 +66,22 @@ export default function LoginPage() {
           )}
         </div>
 
-        <form className="space-y-5 w-full" onSubmit={(e) => e.preventDefault()}>
+        <form className="space-y-5 w-full" onSubmit={handleSubmit}>
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-md px-4 py-2.5 text-sm font-medium">
+              {error}
+            </div>
+          )}
+
           <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-[150px_minmax(0,1fr)] sm:items-center sm:gap-4 font-medium">
             <label htmlFor="loginId" className="text-left sm:text-right text-on-surface-variant">
               Login Id/Email :-
             </label>
             <input
               id="loginId"
+              name="loginIdOrEmail"
               type="text"
+              required
               suppressHydrationWarning
               className="w-full px-3 py-2 border border-outline-variant focus:border-on-surface focus:ring-1 focus:ring-outline focus:outline-none bg-surface-container-lowest rounded-md min-w-0"
             />
@@ -43,7 +94,9 @@ export default function LoginPage() {
             <div className="relative w-full">
               <input
                 id="password"
+                name="password"
                 type={showPassword ? "text" : "password"}
+                required
                 className="w-full px-3 py-2 border border-outline-variant focus:border-on-surface focus:ring-1 focus:ring-outline focus:outline-none bg-surface-container-lowest rounded-md min-w-0 pr-10"
               />
               <button
@@ -59,9 +112,18 @@ export default function LoginPage() {
 
           <div className="pt-8 flex flex-col items-center gap-4">
             <Button
-              className="w-full max-w-[280px] bg-on-surface hover:bg-inverse-surface text-on-primary py-5 text-base font-semibold uppercase rounded-md transition-colors"
+              type="submit"
+              disabled={loading}
+              className="w-full max-w-[280px] bg-on-surface hover:bg-inverse-surface text-on-primary py-5 text-base font-semibold uppercase rounded-md transition-colors disabled:opacity-60"
             >
-              SIGN IN
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="animate-spin" size={18} />
+                  Signing In...
+                </span>
+              ) : (
+                "SIGN IN"
+              )}
             </Button>
             
             <p className="text-sm text-on-surface-variant mt-2">
