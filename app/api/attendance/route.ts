@@ -27,7 +27,12 @@ export async function GET(req: NextRequest) {
       // Admin/HR/Payroll viewing all employees of their company
       where.user = { companyId: sessionUser.companyId };
       if (dateStr) {
-        where.date = new Date(dateStr);
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+          where.date = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        } else {
+          where.date = new Date(dateStr);
+        }
       }
     } else {
       // Employee viewing own records, or specific user

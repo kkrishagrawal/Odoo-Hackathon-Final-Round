@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { useAuth } from "@/components/auth/AuthContext";
+import { toast } from "sonner";
 
 export interface AttendanceRecord {
   id: string;
@@ -102,6 +103,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         setTodayRecord(data.record);
       } else {
         console.error("Check-in failed:", data.error);
+        toast.error(data.error || "Check-in failed");
       }
     } catch (err) {
       console.error("Check-in error:", err);
@@ -118,6 +120,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         setTodayRecord(data.record);
       } else {
         console.error("Check-out failed:", data.error);
+        toast.error(data.error || "Check-out failed");
       }
     } catch (err) {
       console.error("Check-out error:", err);
