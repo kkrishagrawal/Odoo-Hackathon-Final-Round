@@ -35,16 +35,16 @@ export async function GET(req: NextRequest) {
 
     const employees = await prisma.user.findMany({
       where: { companyId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        department: true,
-        jobPosition: true,
-        status: true,
-        profilePicUrl: true,
-      },
+      // select: {
+      //   id: true,
+      //   name: true,
+      //   email: true,
+      //   role: true,
+      //   department: true,
+      //   jobPosition: true,
+      //   status: true,
+      //   profilePicUrl: true,
+      // },
       orderBy: { name: "asc" },
     });
 

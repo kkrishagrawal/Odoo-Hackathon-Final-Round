@@ -1,6 +1,6 @@
 // Computation helpers
 
-import { SalaryInfo } from "@/lib/generated/prisma/client";
+import { SalaryInfo, PayrollConfig } from "@/lib/generated/prisma/client";
 import { Prisma } from "@/lib/generated/prisma/client";
 
 type Decimal = Prisma.Decimal;
@@ -26,7 +26,7 @@ export interface SalaryBreakdown {
     employerCost: number; // monthlyWage + pfEmployer
 }
 
-export function computeSalaryBreakdown(info: SalaryInfo): SalaryBreakdown {
+export function computeSalaryBreakdown(info: SalaryInfo, config: { pfEmployeePct: number; pfEmployerPct: number; professionalTax: number }): SalaryBreakdown {
     const wage = toNum(info.monthlyWage);
 
     const basic = (wage * toNum(info.basicSalaryPct)) / 100;
@@ -40,9 +40,9 @@ export function computeSalaryBreakdown(info: SalaryInfo): SalaryBreakdown {
 
     const grossWage = basic + hra + standardAllowance + bonus + lta + fixedAllowance; // = wage
 
-    const pfEmployee = (basic * toNum(info.pfEmployeePct)) / 100;
-    const pfEmployer = (basic * toNum(info.pfEmployerPct)) / 100;
-    const professionalTax = toNum(info.professionalTax);
+    const pfEmployee = (basic * config.pfEmployeePct) / 100;
+    const pfEmployer = (basic * config.pfEmployerPct) / 100;
+    const professionalTax = config.professionalTax;
 
     const totalDeductions = pfEmployee + professionalTax;
     const netWage = grossWage - totalDeductions;

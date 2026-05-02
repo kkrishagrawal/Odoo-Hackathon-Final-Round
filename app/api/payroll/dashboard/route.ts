@@ -9,7 +9,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 // import { getUser, requireRoles } from "@/lib/auth";
 import { UserRole } from "@/lib/generated/prisma/client";
-import { computeSalaryBreakdown } from "@/lib/payroll";
 
 export async function GET(req: NextRequest) {
   // Auth guard
@@ -21,7 +20,7 @@ export async function GET(req: NextRequest) {
   // const companyId = user!.companyId;
   //
   // TODO: remove before production:
-  const companyId = "REPLACE_WITH_REAL_COMPANY_ID";
+  const companyId = "cmoo5tzca00020cu1yq9v6fso";
 
   const { searchParams } = new URL(req.url);
   const chartView = searchParams.get("chartView") === "annually" ? "annually" : "monthly";

@@ -1,6 +1,3 @@
-"use client";
-
-import { usePathname } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,6 +7,7 @@ import { useAuth, AuthUser } from "@/components/auth/AuthContext";
 import { requestPasswordReset, changePasswordDirect } from "@/app/actions/security";
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { SalaryInfoTab } from "./SalaryInfoTab";
 
 interface ProfileViewProps {
   /** When set, fetch this user's profile instead of the logged-in user's */
@@ -17,18 +15,21 @@ interface ProfileViewProps {
 }
 
 export function ProfileView({ targetUserId }: ProfileViewProps) {
-  const pathname = usePathname();
   const { user: authUser, refreshUser } = useAuth();
-  
-  // Get role from url e.g. /employee/profile -> employee
-  const role = pathname?.split('/')[1] || "employee";
-  
-  const isEmployee = role === "employee";
+
+  const isEmployee = authUser?.role === "EMPLOYEE";
+  const isPayrollOfficer = authUser?.role === "PAYROLL_OFFICER";
+  const isHR = authUser?.role === "HR_OFFICER";
+  const isAdmin = authUser?.role === "ADMIN";
   const isViewingOther = !!targetUserId && targetUserId !== authUser?.id;
-  
+
   // When viewing another user, admin/hr/payroll can edit everything
-  const canEditTopSection = isViewingOther || !isEmployee;
-  const canViewSalaryAndSecurity = !isEmployee;
+  const canEditTopSection = isViewingOther
+    ? (isAdmin || isHR || isPayrollOfficer)  // viewing someone else's profile
+    : !isEmployee;                            // viewing own profile
+
+  const canViewSalaryAndSecurity = isAdmin || isPayrollOfficer;
+  const canEditSalary = isAdmin || isPayrollOfficer;
 
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -46,15 +47,13 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
 
-  const isAdmin = role === "admin";
-
   // The user data to display: either the fetched target user or the logged-in user
   const displayUser = isViewingOther ? targetUser : authUser;
 
   // Fetch target user data when viewing someone else's profile
   useEffect(() => {
     if (!targetUserId) return;
-    
+
     setLoading(true);
     fetch(`/api/user/${targetUserId}`)
       .then(res => {
@@ -81,9 +80,9 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
       const field = input.getAttribute("data-field");
       const group = input.getAttribute("data-group");
       if (!field) return;
-      
+
       const value = input.value?.trim() || null;
-      
+
       if (group === "bank") {
         if (value) bankUpdates[field] = value;
       } else {
@@ -179,9 +178,9 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
     : "??";
 
   // Helper for input className
-  const editableClass = (canEdit: boolean) => 
+  const editableClass = (canEdit: boolean) =>
     `w-full bg-transparent border-b py-1 mt-1 focus:outline-none text-on-surface ${isEditing && canEdit ? "border-outline-variant/50 focus:border-primary-container" : "border-transparent"}`;
-  
+
   const privateFieldClass = `flex-1 ${isEditing ? "bg-surface-container-low border-outline-variant/30" : "bg-transparent border-transparent shadow-none px-0 text-on-surface focus-visible:ring-0"}`;
 
   return (
@@ -223,7 +222,7 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
         {/* Basic Info */}
         <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 max-w-4xl pr-20">
           <div className="col-span-1 md:col-span-2 mb-2">
-            <input 
+            <input
               type="text" data-field="name"
               defaultValue={displayUser?.name || ""} key={`name-${displayUser?.name}`}
               readOnly={!isEditing || !canEditTopSection}
@@ -238,7 +237,7 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
             </div>
             <div>
               <label className="text-sm text-on-surface-variant font-medium">Email</label>
-              <input 
+              <input
                 type="email" data-field="email"
                 defaultValue={displayUser?.email || ""} key={`email-${displayUser?.email}`}
                 readOnly={!isEditing || !canEditTopSection}
@@ -247,7 +246,7 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
             </div>
             <div>
               <label className="text-sm text-on-surface-variant font-medium">Mobile</label>
-              <input 
+              <input
                 type="text" data-field="phone"
                 defaultValue={displayUser?.phone || ""} key={`phone-${displayUser?.phone}`}
                 readOnly={!isEditing || !canEditTopSection}
@@ -267,7 +266,7 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
             </div>
             <div>
               <label className="text-sm text-on-surface-variant font-medium">Department</label>
-              <input 
+              <input
                 type="text" data-field="department"
                 defaultValue={displayUser?.department || ""} key={`dept-${displayUser?.department}`}
                 readOnly={!isEditing || !canEditTopSection}
@@ -276,7 +275,7 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
             </div>
             <div>
               <label className="text-sm text-on-surface-variant font-medium">Job Position</label>
-              <input 
+              <input
                 type="text" data-field="jobPosition"
                 defaultValue={displayUser?.jobPosition || ""} key={`job-${displayUser?.jobPosition}`}
                 readOnly={!isEditing || !canEditTopSection}
@@ -285,7 +284,7 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
             </div>
             <div>
               <label className="text-sm text-on-surface-variant font-medium">Location</label>
-              <input 
+              <input
                 type="text" data-field="location"
                 defaultValue={displayUser?.location || ""} key={`loc-${displayUser?.location}`}
                 readOnly={!isEditing || !canEditTopSection}
@@ -299,13 +298,13 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
       {/* Tabs Section */}
       <Tabs defaultValue="resume" className="w-full mt-6">
         <TabsList className="w-full justify-start border-b border-outline-variant/30 rounded-none bg-transparent h-auto p-0 gap-6">
-          <TabsTrigger value="resume" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-container rounded-none pb-3 pt-2 px-1 text-base text-on-surface-variant data-[state=active]:text-on-surface">
+          <TabsTrigger value="resume" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-container rounded-none pb-3 pt-2 px-1 text-base text-on-surface-variant data-[state=active]:text-on-surface cursor-pointer">
             Resume
           </TabsTrigger>
-          <TabsTrigger value="private-info" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-container rounded-none pb-3 pt-2 px-1 text-base text-on-surface-variant data-[state=active]:text-on-surface">
+          <TabsTrigger value="private-info" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-container rounded-none pb-3 pt-2 px-1 text-base text-on-surface-variant data-[state=active]:text-on-surface cursor-pointer">
             Private Info
           </TabsTrigger>
-          <TabsTrigger value="salary-info" disabled={!canViewSalaryAndSecurity} className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-container rounded-none pb-3 pt-2 px-1 text-base text-on-surface-variant data-[state=active]:text-on-surface disabled:opacity-30">
+          <TabsTrigger value="salary-info" disabled={!canViewSalaryAndSecurity} className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-container rounded-none pb-3 pt-2 px-1 text-base text-on-surface-variant data-[state=active]:text-on-surface disabled:opacity-30 cursor-pointer">
             Salary Info
           </TabsTrigger>
           <TabsTrigger value="security" disabled={isViewingOther} className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-container rounded-none pb-3 pt-2 px-1 text-base text-on-surface-variant data-[state=active]:text-on-surface disabled:opacity-30">
@@ -324,7 +323,7 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
                     <h3 className="font-h3 text-xl font-bold text-on-surface">About</h3>
                     {isEditing && <span className="material-symbols-outlined text-[16px] text-outline opacity-0 group-hover:opacity-100 transition-opacity">edit</span>}
                   </div>
-                  <Textarea 
+                  <Textarea
                     readOnly={!isEditing} data-field="about"
                     defaultValue={displayUser?.about || ""} key={`about-${displayUser?.about}`}
                     className={`min-h-[120px] resize-none ${isEditing ? "border-transparent hover:border-outline-variant/30 focus:border-primary-container bg-transparent text-on-surface" : "border-transparent bg-transparent shadow-none px-0 text-on-surface-variant focus-visible:ring-0 focus-visible:ring-offset-0"}`}
@@ -337,7 +336,7 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
                     <h3 className="font-h3 text-xl font-bold text-on-surface">What I love about my job</h3>
                     {isEditing && <span className="material-symbols-outlined text-[16px] text-outline opacity-0 group-hover:opacity-100 transition-opacity">edit</span>}
                   </div>
-                  <Textarea 
+                  <Textarea
                     readOnly={!isEditing} data-field="whatILove"
                     defaultValue={displayUser?.whatILove || ""} key={`love-${displayUser?.whatILove}`}
                     className={`min-h-[120px] resize-none ${isEditing ? "border-transparent hover:border-outline-variant/30 focus:border-primary-container bg-transparent text-on-surface" : "border-transparent bg-transparent shadow-none px-0 text-on-surface-variant focus-visible:ring-0 focus-visible:ring-offset-0"}`}
@@ -350,7 +349,7 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
                     <h3 className="font-h3 text-xl font-bold text-on-surface">My interests and hobbies</h3>
                     {isEditing && <span className="material-symbols-outlined text-[16px] text-outline opacity-0 group-hover:opacity-100 transition-opacity">edit</span>}
                   </div>
-                  <Textarea 
+                  <Textarea
                     readOnly={!isEditing} data-field="interests"
                     defaultValue={displayUser?.interests || ""} key={`interests-${displayUser?.interests}`}
                     className={`min-h-[120px] resize-none ${isEditing ? "border-transparent hover:border-outline-variant/30 focus:border-primary-container bg-transparent text-on-surface" : "border-transparent bg-transparent shadow-none px-0 text-on-surface-variant focus-visible:ring-0 focus-visible:ring-offset-0"}`}
@@ -577,77 +576,79 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
 
           {/* Private Info Tab */}
           <TabsContent value="private-info" className="outline-none">
-             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-               <div className="space-y-6">
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                   <label className="w-40 text-on-surface-variant font-medium text-sm">Date of Birth</label>
-                   <Input readOnly={!isEditing} data-field="dateOfBirth" type={isEditing ? "date" : "text"} className={privateFieldClass} defaultValue={displayUser?.dateOfBirth ? new Date(displayUser.dateOfBirth).toISOString().split('T')[0] : ""} key={`dob-${displayUser?.dateOfBirth}`} />
-                 </div>
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                   <label className="w-40 text-on-surface-variant font-medium text-sm">Residing Address</label>
-                   <Input readOnly={!isEditing} data-field="residingAddress" type="text" className={privateFieldClass} defaultValue={displayUser?.residingAddress || ""} key={`addr-${displayUser?.residingAddress}`} />
-                 </div>
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                   <label className="w-40 text-on-surface-variant font-medium text-sm">Nationality</label>
-                   <Input readOnly={!isEditing} data-field="nationality" type="text" className={privateFieldClass} defaultValue={displayUser?.nationality || ""} key={`nat-${displayUser?.nationality}`} />
-                 </div>
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                   <label className="w-40 text-on-surface-variant font-medium text-sm">Personal Email</label>
-                   <Input readOnly={!isEditing} data-field="personalEmail" type="email" className={privateFieldClass} defaultValue={displayUser?.personalEmail || ""} key={`pemail-${displayUser?.personalEmail}`} />
-                 </div>
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                   <label className="w-40 text-on-surface-variant font-medium text-sm">Gender</label>
-                   <Input readOnly={!isEditing} data-field="gender" type="text" className={privateFieldClass} defaultValue={displayUser?.gender || ""} key={`gender-${displayUser?.gender}`} />
-                 </div>
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                   <label className="w-40 text-on-surface-variant font-medium text-sm">Marital Status</label>
-                   <Input readOnly={!isEditing} data-field="maritalStatus" type="text" className={privateFieldClass} defaultValue={displayUser?.maritalStatus || ""} key={`marital-${displayUser?.maritalStatus}`} />
-                 </div>
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                   <label className="w-40 text-on-surface-variant font-medium text-sm">Date of Joining</label>
-                   <Input readOnly={!isEditing} data-field="dateOfJoining" type={isEditing ? "date" : "text"} className={privateFieldClass} defaultValue={displayUser?.dateOfJoining ? new Date(displayUser.dateOfJoining).toISOString().split('T')[0] : ""} key={`doj-${displayUser?.dateOfJoining}`} />
-                 </div>
-               </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <label className="w-40 text-on-surface-variant font-medium text-sm">Date of Birth</label>
+                  <Input readOnly={!isEditing} data-field="dateOfBirth" type={isEditing ? "date" : "text"} className={privateFieldClass} defaultValue={displayUser?.dateOfBirth ? new Date(displayUser.dateOfBirth).toISOString().split('T')[0] : ""} key={`dob-${displayUser?.dateOfBirth}`} />
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <label className="w-40 text-on-surface-variant font-medium text-sm">Residing Address</label>
+                  <Input readOnly={!isEditing} data-field="residingAddress" type="text" className={privateFieldClass} defaultValue={displayUser?.residingAddress || ""} key={`addr-${displayUser?.residingAddress}`} />
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <label className="w-40 text-on-surface-variant font-medium text-sm">Nationality</label>
+                  <Input readOnly={!isEditing} data-field="nationality" type="text" className={privateFieldClass} defaultValue={displayUser?.nationality || ""} key={`nat-${displayUser?.nationality}`} />
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <label className="w-40 text-on-surface-variant font-medium text-sm">Personal Email</label>
+                  <Input readOnly={!isEditing} data-field="personalEmail" type="email" className={privateFieldClass} defaultValue={displayUser?.personalEmail || ""} key={`pemail-${displayUser?.personalEmail}`} />
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <label className="w-40 text-on-surface-variant font-medium text-sm">Gender</label>
+                  <Input readOnly={!isEditing} data-field="gender" type="text" className={privateFieldClass} defaultValue={displayUser?.gender || ""} key={`gender-${displayUser?.gender}`} />
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <label className="w-40 text-on-surface-variant font-medium text-sm">Marital Status</label>
+                  <Input readOnly={!isEditing} data-field="maritalStatus" type="text" className={privateFieldClass} defaultValue={displayUser?.maritalStatus || ""} key={`marital-${displayUser?.maritalStatus}`} />
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <label className="w-40 text-on-surface-variant font-medium text-sm">Date of Joining</label>
+                  <Input readOnly={!isEditing} data-field="dateOfJoining" type={isEditing ? "date" : "text"} className={privateFieldClass} defaultValue={displayUser?.dateOfJoining ? new Date(displayUser.dateOfJoining).toISOString().split('T')[0] : ""} key={`doj-${displayUser?.dateOfJoining}`} />
+                </div>
+              </div>
 
-               <div className="space-y-6">
-                 <h3 className="font-h3 text-xl font-bold text-on-surface border-b border-outline-variant/30 pb-2 mb-4">Bank Details</h3>
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                   <label className="w-40 text-on-surface-variant font-medium text-sm">Account Number</label>
-                   <Input readOnly={!isEditing} data-field="accountNumber" data-group="bank" type="text" className={privateFieldClass} defaultValue={displayUser?.bankDetails?.accountNumber || ""} key={`ban-${displayUser?.bankDetails?.accountNumber}`} />
-                 </div>
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                   <label className="w-40 text-on-surface-variant font-medium text-sm">Bank Name</label>
-                   <Input readOnly={!isEditing} data-field="bankName" data-group="bank" type="text" className={privateFieldClass} defaultValue={displayUser?.bankDetails?.bankName || ""} key={`bname-${displayUser?.bankDetails?.bankName}`} />
-                 </div>
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                   <label className="w-40 text-on-surface-variant font-medium text-sm">IFSC Code</label>
-                   <Input readOnly={!isEditing} data-field="ifscCode" data-group="bank" type="text" className={privateFieldClass} defaultValue={displayUser?.bankDetails?.ifscCode || ""} key={`ifsc-${displayUser?.bankDetails?.ifscCode}`} />
-                 </div>
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                   <label className="w-40 text-on-surface-variant font-medium text-sm">PAN No</label>
-                   <Input readOnly={!isEditing} data-field="panNumber" data-group="bank" type="text" className={privateFieldClass} defaultValue={displayUser?.bankDetails?.panNumber || ""} key={`pan-${displayUser?.bankDetails?.panNumber}`} />
-                 </div>
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                   <label className="w-40 text-on-surface-variant font-medium text-sm">UAN NO</label>
-                   <Input readOnly={!isEditing} data-field="uanNumber" data-group="bank" type="text" className={privateFieldClass} defaultValue={displayUser?.bankDetails?.uanNumber || ""} key={`uan-${displayUser?.bankDetails?.uanNumber}`} />
-                 </div>
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                   <label className="w-40 text-on-surface-variant font-medium text-sm">Emp Code</label>
-                   <Input readOnly={!isEditing} data-field="employeeCode" data-group="bank" type="text" className={privateFieldClass} defaultValue={displayUser?.bankDetails?.employeeCode || ""} key={`empcode-${displayUser?.bankDetails?.employeeCode}`} />
-                 </div>
-               </div>
-             </div>
+              <div className="space-y-6">
+                <h3 className="font-h3 text-xl font-bold text-on-surface border-b border-outline-variant/30 pb-2 mb-4">Bank Details</h3>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <label className="w-40 text-on-surface-variant font-medium text-sm">Account Number</label>
+                  <Input readOnly={!isEditing} data-field="accountNumber" data-group="bank" type="text" className={privateFieldClass} defaultValue={displayUser?.bankDetails?.accountNumber || ""} key={`ban-${displayUser?.bankDetails?.accountNumber}`} />
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <label className="w-40 text-on-surface-variant font-medium text-sm">Bank Name</label>
+                  <Input readOnly={!isEditing} data-field="bankName" data-group="bank" type="text" className={privateFieldClass} defaultValue={displayUser?.bankDetails?.bankName || ""} key={`bname-${displayUser?.bankDetails?.bankName}`} />
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <label className="w-40 text-on-surface-variant font-medium text-sm">IFSC Code</label>
+                  <Input readOnly={!isEditing} data-field="ifscCode" data-group="bank" type="text" className={privateFieldClass} defaultValue={displayUser?.bankDetails?.ifscCode || ""} key={`ifsc-${displayUser?.bankDetails?.ifscCode}`} />
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <label className="w-40 text-on-surface-variant font-medium text-sm">PAN No</label>
+                  <Input readOnly={!isEditing} data-field="panNumber" data-group="bank" type="text" className={privateFieldClass} defaultValue={displayUser?.bankDetails?.panNumber || ""} key={`pan-${displayUser?.bankDetails?.panNumber}`} />
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <label className="w-40 text-on-surface-variant font-medium text-sm">UAN NO</label>
+                  <Input readOnly={!isEditing} data-field="uanNumber" data-group="bank" type="text" className={privateFieldClass} defaultValue={displayUser?.bankDetails?.uanNumber || ""} key={`uan-${displayUser?.bankDetails?.uanNumber}`} />
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <label className="w-40 text-on-surface-variant font-medium text-sm">Emp Code</label>
+                  <Input readOnly={!isEditing} data-field="employeeCode" data-group="bank" type="text" className={privateFieldClass} defaultValue={displayUser?.bankDetails?.employeeCode || ""} key={`empcode-${displayUser?.bankDetails?.employeeCode}`} />
+                </div>
+              </div>
+            </div>
           </TabsContent>
 
           {/* Salary Info Tab */}
           <TabsContent value="salary-info" className="outline-none">
             {canViewSalaryAndSecurity ? (
-               <div className="w-full p-12 border border-outline-variant/30 rounded-xl text-center bg-surface-container-low/30">
-                 <span className="material-symbols-outlined text-5xl text-outline mb-3">payments</span>
-                 <h3 className="text-xl font-medium text-on-surface mb-2">Salary Information</h3>
-                 <p className="text-on-surface-variant">Confidential salary and compensation details.</p>
-               </div>
-            ) : null}
+              <SalaryInfoTab
+                userId={displayUser?.id ?? ""}
+                canEdit={canEditSalary}
+              />
+            ) : <div>
+              You are not authorized to view this content.
+            </div>
+            }
           </TabsContent>
 
           {/* Security Tab */}

@@ -1,6 +1,12 @@
 "use client";
 
-import useSWR from "swr";
+import { useState } from "react";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
+
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -12,44 +18,137 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+// Fetcher
+async function fetchPayrun() {
+  const res = await fetch("/api/payrun");
+  if (!res.ok) throw new Error("Failed to fetch payrun");
+  return res.json();
+}
 
+// Component
 export default function PayrunPage() {
-  const { data, isLoading } = useSWR("/api/payrun", fetcher);
+  const queryClient = useQueryClient();
+
+  const [month, setMonth] = useState(new Date().getMonth() + 1);
+  const [year, setYear] = useState(new Date().getFullYear());
+
+  // Query
+  const { data, isLoading } = useQuery({
+    queryKey: ["payrun"],
+    queryFn: fetchPayrun,
+  });
 
   const payslips = data?.payslips || [];
 
+  // Mutations
+  const generateMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/payrun/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ month, year }),
+      });
+      if (!res.ok) throw new Error("Failed to generate payrun");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["payrun"] });
+    },
+  });
+
+  const computeMutation = useMutation({
+    mutationFn: async () => {
+      if (!data?.id) return;
+      const res = await fetch("/api/payrun/compute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payrunId: data.id }),
+      });
+      if (!res.ok) throw new Error("Failed to compute payrun");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["payrun"] });
+    },
+  });
+
+  const validateMutation = useMutation({
+    mutationFn: async () => {
+      if (!data?.id) return;
+      const res = await fetch("/api/payrun/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payrunId: data.id }),
+      });
+      if (!res.ok) throw new Error("Failed to validate payrun");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["payrun"] });
+    },
+  });
+
+  // UI
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex gap-2">
-          <Button className="flex items-center gap-3 px-3 py-3 rounded-lg font-body-md transition-all duration-200 bg-primary-container text-white shadow-md">Payrun</Button>
-          <Button className="flex items-center gap-3 px-3 py-3 rounded-lg font-body-md transition-all duration-200 bg-primary-container text-white shadow-md">Validate</Button>
+          {/* Month selector */}
+          <select
+            value={month}
+            onChange={(e) => setMonth(Number(e.target.value))}
+            className="border rounded px-2 py-1"
+          >
+            {[...Array(12)].map((_, i) => (
+              <option key={i + 1} value={i + 1}>
+                {new Date(0, i).toLocaleString("default", {
+                  month: "short",
+                })}
+              </option>
+            ))}
+          </select>
+
+          {/* Year selector */}
+          <input
+            type="number"
+            value={year}
+            onChange={(e) => setYear(Number(e.target.value))}
+            className="border rounded px-2 py-1 w-20"
+            min={2000}
+            max={2100}
+          />
+
+          {/* Buttons */}
+          <Button
+            onClick={() => generateMutation.mutate()}
+            disabled={generateMutation.isPending}
+            className="bg-primary-container text-white"
+          >
+            {generateMutation.isPending ? "Creating..." : "New Payrun"}
+          </Button>
+
+          <Button
+            onClick={() => computeMutation.mutate()}
+            disabled={!data?.id || computeMutation.isPending}
+            className="bg-primary-container text-white"
+          >
+            {computeMutation.isPending ? "Computing..." : "Compute"}
+          </Button>
+
+          <Button
+            onClick={() => validateMutation.mutate()}
+            disabled={!data?.id || validateMutation.isPending}
+            className="bg-primary-container text-white"
+          >
+            {validateMutation.isPending ? "Validating..." : "Validate"}
+          </Button>
         </div>
       </div>
 
       {/* Summary */}
       {data && (
         <div className="flex gap-6 text-sm">
-          <div>
-            <p className="text-muted-foreground">Employer Cost</p>
-            <p className="font-semibold">
-              ₹ {sum(payslips, "employerCost")}
-            </p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Gross</p>
-            <p className="font-semibold">
-              ₹ {sum(payslips, "grossWage")}
-            </p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Net</p>
-            <p className="font-semibold">
-              ₹ {sum(payslips, "netWage")}
-            </p>
-          </div>
+          <SummaryItem label="Employer Cost" value={sum(payslips, "employerCost")} />
+          <SummaryItem label="Gross" value={sum(payslips, "grossWage")} />
+          <SummaryItem label="Net" value={sum(payslips, "netWage")} />
         </div>
       )}
 
@@ -77,9 +176,7 @@ export default function PayrunPage() {
 
             {!isLoading && payslips.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7}>
-                  No payslips found
-                </TableCell>
+                <TableCell colSpan={7}>No payslips found</TableCell>
               </TableRow>
             )}
 
@@ -105,6 +202,16 @@ export default function PayrunPage() {
   );
 }
 
+// Helpers
+function SummaryItem({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <p className="text-muted-foreground">{label}</p>
+      <p className="font-semibold">₹ {value}</p>
+    </div>
+  );
+}
+
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     DRAFT: "secondary",
@@ -122,7 +229,8 @@ function sum(items: any[], key: string) {
 
 function formatPeriod(month: number, year: number) {
   if (!month || !year) return "-";
-  return `[${new Date(year, month - 1).toLocaleString("default", {
+  return new Date(year, month - 1).toLocaleString("default", {
     month: "short",
-  })} ${year}]`;
+    year: "numeric",
+  });
 }
