@@ -1,3 +1,4 @@
+
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -46,6 +47,75 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Custom Colors for Landing Page */
+  --color-on-tertiary-fixed-variant: #3b4c24;
+  --color-on-secondary: #ffffff;
+  --color-surface-container-highest: #e9e0e3;
+  --color-tertiary-fixed-dim: #b9ce9a;
+  --color-surface-container: #f4ecee;
+  --color-secondary: #006687;
+  --color-on-error: #ffffff;
+  --color-secondary-fixed: #c1e8ff;
+  --color-background-custom: #fff7f9;
+  --color-outline-variant: #d1c3ca;
+  --color-inverse-on-surface: #f7eef1;
+  --color-on-secondary-fixed-variant: #004d66;
+  --color-secondary-fixed-dim: #72d2ff;
+  --color-surface: #fff7f9;
+  --color-outline: #80747a;
+  --color-error: #ba1a1a;
+  --color-surface-tint: #79526f;
+  --color-secondary-container: #51cbff;
+  --color-on-secondary-fixed: #001e2b;
+  --color-tertiary-fixed: #d5eab4;
+  --color-on-secondary-container: #00536f;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #f0bfe0;
+  --color-inverse-primary: #e9b8d9;
+  --color-on-surface-variant: #4e444a;
+  --color-error-container: #ffdad6;
+  --color-primary-fixed: #ffd7f1;
+  --color-on-primary-fixed-variant: #5f3b56;
+  --color-on-tertiary: #ffffff;
+  --color-inverse-surface: #342f31;
+  --color-primary-container: #714b67;
+  --color-surface-container-low: #faf1f4;
+  --color-primary-custom: #57344f;
+  --color-surface-variant: #e9e0e3;
+  --color-surface-bright: #fff7f9;
+  --color-tertiary-container: #4b5d33;
+  --color-on-tertiary-container: #c0d5a0;
+  --color-surface-dim: #e0d8da;
+  --color-on-surface: #1e1b1d;
+  --color-on-error-container: #93000a;
+  --color-on-background: #1e1b1d;
+  --color-surface-container-lowest: #ffffff;
+  --color-primary-fixed-dim: #e9b8d9;
+  --color-on-primary-fixed: #2f1029;
+  --color-tertiary: #34451e;
+  --color-surface-container-high: #efe6e9;
+  --color-on-tertiary-fixed: #112000;
+
+  /* Spacing */
+  --spacing-base: 8px;
+  --spacing-xl: 64px;
+  --spacing-xs: 4px;
+  --spacing-gutter: 24px;
+  --spacing-container-margin: 32px;
+  --spacing-md: 24px;
+  --spacing-sm: 12px;
+  --spacing-lg: 40px;
+
+  /* Fonts */
+  --font-h1: "Epilogue", sans-serif;
+  --font-body-md: "Plus Jakarta Sans", sans-serif;
+  --font-h2: "Epilogue", sans-serif;
+  --font-body-lg: "Plus Jakarta Sans", sans-serif;
+  --font-label-md: "Plus Jakarta Sans", sans-serif;
+  --font-h3: "Epilogue", sans-serif;
+  --font-display-handwritten: "cursive";
+  --font-caption: "Plus Jakarta Sans", sans-serif;
 }
 
 :root {
@@ -126,5 +196,34 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer utilities {
+  .text-h1 { font-size: 36px; line-height: 1.2; letter-spacing: -0.02em; font-weight: 700; }
+  .text-body-md { font-size: 16px; line-height: 1.6; font-weight: 400; }
+  .text-h2 { font-size: 28px; line-height: 1.3; font-weight: 600; }
+  .text-body-lg { font-size: 18px; line-height: 1.6; font-weight: 400; }
+  .text-label-md { font-size: 14px; line-height: 1.4; letter-spacing: 0.01em; font-weight: 600; }
+  .text-h3 { font-size: 22px; line-height: 1.4; font-weight: 600; }
+  .text-display-handwritten { font-size: 40px; line-height: 1.2; font-weight: 400; }
+  .text-caption { font-size: 12px; line-height: 1.4; font-weight: 500; }
+
+  .marker-underline {
+    position: relative;
+    display: inline-block;
+  }
+  .marker-underline::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    width: 100%;
+    height: 12px;
+    background-color: #F2A93B;
+    opacity: 0.6;
+    border-radius: 8px;
+    z-index: -1;
+    transform: rotate(-1deg);
   }
 }
