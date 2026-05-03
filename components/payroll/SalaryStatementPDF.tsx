@@ -8,218 +8,255 @@ import {
     StyleSheet,
 } from "@react-pdf/renderer";
 
-export interface SalaryStatementPDFProps {
-    companyName: string;
-    employeeName: string;
-    designation?: string;
-    dateOfJoining?: string;
-    year: number;
-    months: number;
+// 🎨 Your palette (kept)
+const PURPLE = "#714B67";
+const TEAL = "#15AABF";
+const LIGHT_PURPLE = "#F3EEF8";
 
-    earnings: Record<string, number>;
-    deductions: Record<string, number>;
-    totals: {
-        gross: number;
-        deductions: number;
-        net: number;
-    };
-}
-
-// 🎨 Keep consistent with PayslipPDF style
+// ---- STYLES ----
 const styles = StyleSheet.create({
     page: {
-        padding: 24,
+        padding: 20,
         fontSize: 10,
         fontFamily: "Helvetica",
+        color: PURPLE,
     },
 
     header: {
-        marginBottom: 12,
-        borderBottom: "1px solid #e5e7eb",
-        paddingBottom: 6,
+        marginBottom: 10,
+    },
+
+    company: {
+        fontSize: 14,
+        fontWeight: 700,
+        color: PURPLE,
     },
 
     title: {
         fontSize: 16,
         fontWeight: 700,
-        marginBottom: 4,
+        marginTop: 4,
+        color: PURPLE,
     },
 
-    subText: {
-        fontSize: 10,
-        color: "#374151",
-    },
-
-    section: {
-        marginVertical: 8,
+    card: {
+        borderWidth: 1,
+        borderColor: PURPLE,
+        borderRadius: 6,
+        padding: 10,
+        marginVertical: 10,
     },
 
     row: {
         flexDirection: "row",
         justifyContent: "space-between",
+        marginBottom: 4,
     },
 
-    table: {
-        borderWidth: 1,
-        borderColor: "#e5e7eb",
-        marginTop: 10,
+    label: {
+        fontWeight: 600,
     },
 
-    tableHeader: {
+    sectionHeader: {
+        backgroundColor: PURPLE,
+        color: "white",
+        padding: 6,
         flexDirection: "row",
-        backgroundColor: "#f3f4f6",
-        borderBottomWidth: 1,
-        borderColor: "#e5e7eb",
         fontWeight: 600,
     },
 
     tableRow: {
         flexDirection: "row",
-        borderBottomWidth: 1,
-        borderColor: "#f3f4f6",
-    },
-
-    cell: {
-        flex: 1,
         padding: 6,
+        borderBottomWidth: 1,
+        borderColor: LIGHT_PURPLE,
     },
 
-    right: {
-        textAlign: "right",
+    alt: {
+        backgroundColor: LIGHT_PURPLE,
     },
 
     bold: {
         fontWeight: 600,
     },
 
-    totalRow: {
+    right: {
+        textAlign: "right",
+    },
+
+    netContainer: {
+        marginTop: 14,
         flexDirection: "row",
-        backgroundColor: "#f9fafb",
-        borderTopWidth: 1,
-        borderColor: "#e5e7eb",
+        borderRadius: 6,
+        overflow: "hidden",
+    },
+
+    netLabel: {
+        flex: 3,
+        backgroundColor: PURPLE,
+        color: "white",
+        padding: 10,
+    },
+
+    netAmount: {
+        flex: 1,
+        backgroundColor: TEAL,
+        color: "white",
+        padding: 10,
+        textAlign: "right",
+        fontWeight: 700,
+        fontSize: 12,
+    },
+
+    colLabel: {
+        flex: 3,
+    },
+    colAmount: {
+        flex: 1,
+        textAlign: "right",
+    },
+    colLabelRight: {
+        flex: 3,
+        paddingLeft: 16,
+    },
+    colAmountRight: {
+        flex: 1,
+        textAlign: "right",
     },
 });
 
-// Helper
-const format = (n: number) => `${n.toFixed(2)}`;
+// ---- STATIC LABELS ----
+const EARNINGS = [
+    ["Basic Salary", "basic"],
+    ["House Rent Allowance", "hra"],
+    ["Conveyance Allowance", "conveyance"],
+    ["Medical Allowance", "medical"],
+    ["Bonus", "bonus"],
+    ["Other Earnings", "other"],
+];
 
-export function SalaryStatementPDF(props: SalaryStatementPDFProps) {
-    const {
-        companyName,
-        employeeName,
-        designation,
-        dateOfJoining,
-        year,
-        months,
-        earnings,
-        deductions,
-        totals,
-    } = props;
+const DEDUCTIONS = [
+    ["Provident Fund", "pf"],
+    ["ESI", "esi"],
+    ["Professional Tax", "professionalTax"],
+    ["TDS", "tds"],
+    ["Other Deductions", "other"],
+];
 
-    const monthly = (yearly: number) =>
-        months ? yearly / months : yearly;
+// ---- HELPERS ----
+const money = (n?: number) => `Rs ${(n || 0).toFixed(2)}`;
 
+// ---- COMPONENT ----
+export default function SalaryStatementPDF({
+    companyName,
+    employeeName,
+    designation,
+    dateOfJoining,
+    year,
+    earnings = {},
+    deductions = {},
+    totals = {},
+}: any) {
     return (
         <Document>
             <Page size="A4" style={styles.page}>
                 {/* HEADER */}
                 <View style={styles.header}>
-                    <Text style={styles.title}>Salary Statement Report</Text>
-                    <Text style={styles.subText}>{companyName}</Text>
+                    <Text style={styles.company}>{companyName}</Text>
+                    <Text style={styles.title}>
+                        Salary Statement - {year}
+                    </Text>
                 </View>
 
-                {/* EMPLOYEE INFO */}
-                <View style={styles.section}>
-                    <Text>Name: {employeeName}</Text>
-                    {designation && <Text>Designation: {designation}</Text>}
-                    {dateOfJoining && (
-                        <Text>
-                            Date of Joining:{" "}
-                            {new Date(dateOfJoining).toLocaleDateString()}
-                        </Text>
-                    )}
-                    <Text>Year: {year}</Text>
-                </View>
-
-                {/* TABLE */}
-                <View style={styles.table}>
-                    {/* HEADER */}
-                    <View style={styles.tableHeader}>
-                        <Text style={styles.cell}>Component</Text>
-                        <Text style={[styles.cell, styles.right]}>
-                            Monthly
-                        </Text>
-                        <Text style={[styles.cell, styles.right]}>
-                            Yearly
-                        </Text>
+                {/* EMPLOYEE CARD */}
+                <View style={styles.card}>
+                    <View style={styles.row}>
+                        <Text style={styles.label}>Employee Name</Text>
+                        <Text>{employeeName}</Text>
                     </View>
 
-                    {/* EARNINGS */}
-                    {Object.entries(earnings).map(([key, value]) => (
-                        <View key={key} style={styles.tableRow}>
-                            <Text style={styles.cell}>
-                                {key.replace(/([A-Z])/g, " $1")}
-                            </Text>
-                            <Text style={[styles.cell, styles.right]}>
-                                {format(monthly(value))}
-                            </Text>
-                            <Text style={[styles.cell, styles.right]}>
-                                {format(value)}
-                            </Text>
+                    {designation && (
+                        <View style={styles.row}>
+                            <Text style={styles.label}>Designation</Text>
+                            <Text>{designation}</Text>
                         </View>
-                    ))}
+                    )}
 
-                    {/* DEDUCTIONS */}
-                    {Object.entries(deductions).map(([key, value]) => (
-                        <View key={key} style={styles.tableRow}>
-                            <Text style={styles.cell}>
-                                {key.replace(/([A-Z])/g, " $1")}
-                            </Text>
-                            <Text style={[styles.cell, styles.right]}>
-                                {format(monthly(value))}
-                            </Text>
-                            <Text style={[styles.cell, styles.right]}>
-                                {format(value)}
+                    {dateOfJoining && (
+                        <View style={styles.row}>
+                            <Text style={styles.label}>Date of Joining</Text>
+                            <Text>
+                                {new Date(dateOfJoining).toLocaleDateString()}
                             </Text>
                         </View>
-                    ))}
+                    )}
+
+                    <View style={styles.row}>
+                        <Text style={styles.label}>Year</Text>
+                        <Text>{year}</Text>
+                    </View>
+                </View>
+
+                {/* EARNINGS + DEDUCTIONS */}
+                <View>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.colLabel}>Earnings</Text>
+                        <Text style={styles.colAmount}>Amount</Text>
+                        <Text style={styles.colLabelRight}>Deductions</Text>
+                        <Text style={styles.colAmountRight}>Amount</Text>
+                    </View>
+
+                    {Array.from({ length: Math.max(EARNINGS.length, DEDUCTIONS.length) }).map(
+                        (_, i) => {
+                            const e = EARNINGS[i];
+                            const d = DEDUCTIONS[i];
+
+                            return (
+                                <View style={[
+                                    styles.tableRow,
+                                    ...(i % 2 === 0 ? [styles.alt] : []),
+                                ]}>
+                                    <Text style={styles.colLabel}>{e?.[0] || ""}</Text>
+                                    <Text style={styles.colAmount}>
+                                        {money(earnings[e?.[1]] || 0)}
+                                    </Text>
+
+                                    <Text style={styles.colLabelRight}>{d?.[0] || ""}</Text>
+                                    <Text style={styles.colAmountRight}>
+                                        {d ? `- ${money(deductions[d[1]] || 0)}` : ""}
+                                    </Text>
+                                </View>
+                            );
+                        }
+                    )}
 
                     {/* TOTALS */}
-                    <View style={styles.totalRow}>
-                        <Text style={[styles.cell, styles.bold]}>
-                            Gross Salary
+                    <View style={[styles.tableRow, styles.alt]}>
+                        <Text style={[styles.colLabel, styles.bold]}>Gross</Text>
+                        <Text style={[styles.colAmount, styles.bold]}>
+                            {money(totals.gross)}
                         </Text>
-                        <Text style={[styles.cell, styles.right, styles.bold]}>
-                            {format(monthly(totals.gross))}
-                        </Text>
-                        <Text style={[styles.cell, styles.right, styles.bold]}>
-                            {format(totals.gross)}
-                        </Text>
-                    </View>
 
-                    <View style={styles.totalRow}>
-                        <Text style={[styles.cell, styles.bold]}>
+                        <Text style={[styles.colLabelRight, styles.bold]}>
                             Total Deductions
                         </Text>
-                        <Text style={[styles.cell, styles.right, styles.bold]}>
-                            {format(monthly(totals.deductions))}
+                        <Text style={[styles.colAmountRight, styles.bold]}>
+                            - {money(totals.deductions)}
                         </Text>
-                        <Text style={[styles.cell, styles.right, styles.bold]}>
-                            {format(totals.deductions)}
+                    </View>
+                </View>
+
+                {/* NET */}
+                <View style={styles.netContainer}>
+                    <View style={styles.netLabel}>
+                        <Text style={styles.bold}>
+                            Total Net Payable
                         </Text>
                     </View>
 
-                    <View style={styles.totalRow}>
-                        <Text style={[styles.cell, styles.bold]}>
-                            Net Salary
-                        </Text>
-                        <Text style={[styles.cell, styles.right, styles.bold]}>
-                            {format(monthly(totals.net))}
-                        </Text>
-                        <Text style={[styles.cell, styles.right, styles.bold]}>
-                            {format(totals.net)}
-                        </Text>
-                    </View>
+                    <Text style={styles.netAmount}>
+                        {money(totals.net)}
+                    </Text>
                 </View>
             </Page>
         </Document>

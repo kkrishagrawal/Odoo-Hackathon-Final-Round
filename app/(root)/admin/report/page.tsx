@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
-import { SalaryStatementPDF } from "@/components/payroll/SalaryStatementPDF";
+import SalaryStatementPDF from "@/components/payroll/SalaryStatementPDF";
 
 const PDFDownloadLinkDynamic = dynamic(
   () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
-import { SalaryStatementPDF } from "@/components/payroll/SalaryStatementPDF";
+import SalaryStatementPDF from "@/components/payroll/SalaryStatementPDF";
 
 const PDFDownloadLinkDynamic = dynamic(
   () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
@@ -99,7 +99,7 @@ export default function ReportsPage() {
       </div>
 
       {/* Preview */}
-      {data && (
+      {data && data.totals && (
         <div className="border rounded p-4 space-y-4">
           <div className="space-y-1">
             <p>
@@ -121,11 +121,11 @@ export default function ReportsPage() {
 
           {/* Print PDF */}
           <PDFDownloadLinkDynamic
-            document={<SalaryStatementPDF {...data} />}
-            fileName={`salary_statement_${data.employeeName.replace(
-              /\s+/g,
-              "_"
-            )}_${data.year}.pdf`}
+            document={
+              data ? <SalaryStatementPDF {...data} /> : <></>
+            }
+            fileName={`salary_statement_${(data.employeeName || "employee")
+              .replace(/\s+/g, "_")}_${data.year || "year"}.pdf`}
           >
             {({ loading }) => (
               <Button variant="outline">
