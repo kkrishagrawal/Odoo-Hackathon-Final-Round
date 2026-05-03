@@ -124,7 +124,7 @@ export default function Sidebar({ role }: SidebarProps) {
         <button 
           onClick={() => { logout(); }}
           title={collapsed ? "Logout" : undefined}
-          className={`flex items-center ${collapsed ? "justify-center" : "gap-3"} px-3 py-3 w-full rounded-lg font-body-md text-error hover:bg-error/10 transition-colors`}
+          className={`cursor-pointer flex items-center ${collapsed ? "justify-center" : "gap-3"} px-3 py-3 w-full rounded-lg font-body-md text-error hover:bg-error/10 transition-colors`}
         >
           <span className="material-symbols-outlined text-xl">logout</span>
           {!collapsed && <span className="font-medium">Logout</span>}

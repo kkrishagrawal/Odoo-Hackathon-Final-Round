@@ -249,7 +249,11 @@ export default function PayslipDetail({ payslipId }: Props) {
                                 pfEmployer: p.pfEmployer,
                                 professionalTax: p.professionalTax,
                                 tdsDeduction: p.tdsDeduction,
-                                unpaidLeaveDeduction: p.monthlyWage - p.grossWage,
+                                unpaidLeaveDeduction: getUnpaidLeaveAmount(
+                                    p,
+                                    p.payrun.month,
+                                    p.payrun.year
+                                ),
                                 totalDeductions: p.totalDeductions,
                                 netWage: p.netWage,
                             }}

@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { PayslipStatus } from "@/lib/generated/prisma/client";
-import { computeSalaryBreakdown, scaleToPayableDays } from "@/lib/payroll";
+import { computeSalaryBreakdown } from "@/lib/payroll";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ payslipId: string }> }
 ) {
   const { payslipId } = await params;
-
   const payslip = await prisma.payslip.findUnique({
     where: { id: payslipId },
     include: {
@@ -57,33 +56,49 @@ export async function POST(
   const attendanceDays = attendance.filter((a) => a.checkIn !== null).length;
   const paidLeaveDays = leaves.filter((l) => l.type === "PAID").reduce((s, l) => s + l.days.toNumber(), 0);
   const unpaidLeaveDays = leaves.filter((l) => l.type === "UNPAID").reduce((s, l) => s + l.days.toNumber(), 0);
-  const totalPayableDays = Math.min(attendanceDays + paidLeaveDays, totalWorkingDays);
 
   const fullBreakdown = computeSalaryBreakdown(info, config);
-  const scaled = scaleToPayableDays(fullBreakdown, totalPayableDays, totalWorkingDays);
 
+  function round(n: number) {
+    return Math.round(n * 100) / 100;
+  }
+
+  const bonusPerDay =
+    totalWorkingDays > 0
+      ? fullBreakdown.bonus / totalWorkingDays
+      : 0;
+
+  const unpaidLeaveDeduction = round(
+    bonusPerDay * unpaidLeaveDays
+  );
+  const totalDeductions = round(
+    fullBreakdown.pfEmployee +
+    fullBreakdown.pfEmployer +
+    fullBreakdown.professionalTax +
+    unpaidLeaveDeduction
+  );
+
+  const netWage = round(
+    fullBreakdown.grossWage - totalDeductions
+  );
   const updated = await prisma.payslip.update({
-    where: { id: payslipId },
+    where: { id: payslip.id },
     data: {
-      status: PayslipStatus.COMPUTED,
-      attendanceDays,
-      paidLeaveDays,
-      unpaidLeaveDays,
-      totalPayableDays,
       monthlyWage: fullBreakdown.monthlyWage,
-      basicSalary: scaled.basicSalary,
-      hra: scaled.hra,
-      standardAllowance: scaled.standardAllowance,
-      bonus: scaled.bonus,
-      lta: scaled.lta,
-      fixedAllowance: scaled.fixedAllowance,
-      grossWage: scaled.grossWage,
-      pfEmployee: scaled.pfEmployee,
-      pfEmployer: scaled.pfEmployer,
-      professionalTax: scaled.professionalTax,
-      totalDeductions: scaled.totalDeductions,
-      netWage: scaled.netWage,
-      employerCost: scaled.employerCost,
+      basicSalary: fullBreakdown.basicSalary,
+      hra: fullBreakdown.hra,
+      standardAllowance: fullBreakdown.standardAllowance,
+      bonus: fullBreakdown.bonus,
+      lta: fullBreakdown.lta,
+      fixedAllowance: fullBreakdown.fixedAllowance,
+      grossWage: fullBreakdown.grossWage,
+      pfEmployee: fullBreakdown.pfEmployee,
+      pfEmployer: fullBreakdown.pfEmployer,
+      professionalTax: fullBreakdown.professionalTax,
+      totalDeductions,
+      netWage,
+      employerCost: fullBreakdown.employerCost,
+      unpaidLeaveDeduction
     },
   });
 

@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { UserRole, PayslipStatus } from "@/lib/generated/prisma/client";
-import { computeSalaryBreakdown, scaleToPayableDays } from "@/lib/payroll";
+import { computeSalaryBreakdown } from "@/lib/payroll";
 
 export async function POST(req: NextRequest) {
   const { payrunId } = await req.json();
   if (!payrunId) {
     return NextResponse.json({ error: "payrunId required" }, { status: 400 });
   }
-
   const payrun = await prisma.payrun.findUnique({
     where: { id: payrunId },
     include: {
@@ -59,12 +58,10 @@ export async function POST(req: NextRequest) {
 
     if (!info) continue;
 
-    // ✅ Filter attendance for this payrun month
     const attendance = user.attendanceRecords.filter(
       (a) => a.date >= startDate && a.date <= endDate
     );
 
-    // ✅ Filter leaves for this payrun month
     const leaves = user.timeOffRequests.filter(
       (l) =>
         l.status === "APPROVED" &&
@@ -87,8 +84,29 @@ export async function POST(req: NextRequest) {
     const totalPayableDays = Math.min(attendanceDays + paidLeaveDays, totalWorkingDays);
 
     const fullBreakdown = computeSalaryBreakdown(info, config);
-    const scaled = scaleToPayableDays(fullBreakdown, totalPayableDays, totalWorkingDays);
 
+    function round(n: number) {
+      return Math.round(n * 100) / 100;
+    }
+
+    const bonusPerDay =
+      totalWorkingDays > 0
+        ? fullBreakdown.bonus / totalWorkingDays
+        : 0;
+
+    const unpaidLeaveDeduction = round(
+      bonusPerDay * unpaidLeaveDays
+    );
+    const totalDeductions = round(
+      fullBreakdown.pfEmployee +
+      fullBreakdown.pfEmployer +
+      fullBreakdown.professionalTax +
+      unpaidLeaveDeduction
+    );
+
+    const netWage = round(
+      fullBreakdown.grossWage - totalDeductions
+    );
     await prisma.payslip.update({
       where: { id: payslip.id },
       data: {
@@ -98,19 +116,20 @@ export async function POST(req: NextRequest) {
         unpaidLeaveDays,
         totalPayableDays,
         monthlyWage: fullBreakdown.monthlyWage,
-        basicSalary: scaled.basicSalary,
-        hra: scaled.hra,
-        standardAllowance: scaled.standardAllowance,
-        bonus: scaled.bonus,
-        lta: scaled.lta,
-        fixedAllowance: scaled.fixedAllowance,
-        grossWage: scaled.grossWage,
-        pfEmployee: scaled.pfEmployee,
-        pfEmployer: scaled.pfEmployer,
-        professionalTax: scaled.professionalTax,
-        totalDeductions: scaled.totalDeductions,
-        netWage: scaled.netWage,
-        employerCost: scaled.employerCost,
+        basicSalary: fullBreakdown.basicSalary,
+        hra: fullBreakdown.hra,
+        standardAllowance: fullBreakdown.standardAllowance,
+        bonus: fullBreakdown.bonus,
+        lta: fullBreakdown.lta,
+        fixedAllowance: fullBreakdown.fixedAllowance,
+        grossWage: fullBreakdown.grossWage,
+        pfEmployee: fullBreakdown.pfEmployee,
+        pfEmployer: fullBreakdown.pfEmployer,
+        professionalTax: fullBreakdown.professionalTax,
+        totalDeductions,
+        netWage,
+        employerCost: fullBreakdown.employerCost,
+        unpaidLeaveDeduction
       },
     });
   }
