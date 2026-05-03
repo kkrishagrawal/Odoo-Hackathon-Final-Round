@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth, getRolePath } from "@/components/auth/AuthContext";
 
 /**
@@ -11,10 +11,17 @@ import { useAuth, getRolePath } from "@/components/auth/AuthContext";
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     if (loading) return;
+
+    // Allow access to the reset-password page even if logged in
+    if (pathname === "/reset-password") {
+      setReady(true);
+      return;
+    }
 
     if (user) {
       // Already logged in → redirect to their dashboard
@@ -25,7 +32,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
     // Not logged in → allow access to auth pages
     setReady(true);
-  }, [user, loading, router]);
+  }, [user, loading, router, pathname]);
 
   if (loading || !ready) {
     return (
