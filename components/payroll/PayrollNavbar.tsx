@@ -10,8 +10,10 @@ export default function PayrollNavbar() {
   const { user } = useAuth();
 
   // fallback to payroll if user not loaded yet
-  const basePath = user ? `/${getRolePath(user.role)}/payroll` : "/payroll";
-
+  const basePath =
+    user && user.role === "ADMIN"
+      ? `/${getRolePath(user.role)}/payroll`
+      : "/payroll";
   const tabs = [
     { name: "Payroll Dashboard", href: `${basePath}/payroll` },
     { name: "Payrun", href: `${basePath}/payrun` },
