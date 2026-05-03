@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
 });
 
 // Helper
-const format = (n: number) => `₹${n.toFixed(2)}`;
+const format = (n: number) => `${n.toFixed(2)}`;
 
 export function SalaryStatementPDF(props: SalaryStatementPDFProps) {
     const {
