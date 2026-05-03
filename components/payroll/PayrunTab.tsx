@@ -22,7 +22,10 @@ import { toast } from "sonner";
 
 // Fetcher
 async function fetchPayrun(month: number, year: number) {
-  const res = await fetch(`/api/payrun?month=${month}&year=${year}`);
+  const companyId = typeof window !== 'undefined' ? localStorage.getItem("companyId") : "cmoo5tzca00020cu1yq9v6fso";
+  const res = await fetch(`/api/payrun?month=${month}&year=${year}`, {
+    headers: { "x-company-id": companyId }
+  });
   if (!res.ok) throw new Error("Failed to fetch payrun");
   return res.json();
 }
@@ -46,9 +49,13 @@ export default function PayrunTab() {
   //Mutation
   const generateMutation = useMutation({
     mutationFn: async () => {
+      const companyId = typeof window !== 'undefined' ? localStorage.getItem("companyId") || "cmoo5tzca00020cu1yq9v6fso" : "cmoo5tzca00020cu1yq9v6fso";
       const res = await fetch("/api/payrun/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-company-id": companyId
+        },
         body: JSON.stringify({ month, year }),
       });
 
@@ -76,9 +83,13 @@ export default function PayrunTab() {
   const computeMutation = useMutation({
     mutationFn: async () => {
       if (!data?.id) return;
+      const companyId = typeof window !== 'undefined' ? localStorage.getItem("companyId") || "cmoo5tzca00020cu1yq9v6fso" : "cmoo5tzca00020cu1yq9v6fso";
       const res = await fetch("/api/payrun/compute", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-company-id": companyId
+        },
         body: JSON.stringify({ payrunId: data.id }),
       });
       if (!res.ok) throw new Error("Failed to compute payrun");
@@ -91,9 +102,13 @@ export default function PayrunTab() {
   const validateMutation = useMutation({
     mutationFn: async () => {
       if (!data?.id) return;
+      const companyId = typeof window !== 'undefined' ? localStorage.getItem("companyId") || "cmoo5tzca00020cu1yq9v6fso" : "cmoo5tzca00020cu1yq9v6fso";
       const res = await fetch("/api/payrun/validate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-company-id": companyId
+        },
         body: JSON.stringify({ payrunId: data.id }),
       });
       if (!res.ok) throw new Error("Failed to validate payrun");
@@ -109,9 +124,13 @@ export default function PayrunTab() {
   const cancelMutation = useMutation({
     mutationFn: async () => {
       if (!data?.id) return;
+      const companyId = typeof window !== 'undefined' ? localStorage.getItem("companyId") || "cmoo5tzca00020cu1yq9v6fso" : "cmoo5tzca00020cu1yq9v6fso";
       const res = await fetch("/api/payrun/cancel", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-company-id": companyId
+        },
         body: JSON.stringify({ payrunId: data.id }),
       });
       if (!res.ok) throw new Error("Failed to cancel payrun");

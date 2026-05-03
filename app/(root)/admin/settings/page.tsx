@@ -2,8 +2,15 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { Loader2, Plus, Send, X, ChevronDown } from "lucide-react";
-import { createEmployee, resendCredentialsEmail, getCompanyEmployees } from "./actions";
+import { createEmployee, resendCredentialsEmail, getCompanyEmployees, updateUserRole } from "./actions";
 import type { EmployeeRow } from "./actions";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -25,6 +32,7 @@ export default function SettingsPage() {
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [sendStatus, setSendStatus] = useState<Record<string, "sending" | "sent" | "error">>({});
   const [loadingList, setLoadingList] = useState(true);
+  const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
 
   // Form state
   const [name, setName] = useState("");
@@ -117,6 +125,20 @@ export default function SettingsPage() {
         return next;
       });
     }, 5000);
+  }
+
+  async function handleRoleChange(userId: string, newRole: string) {
+    setUpdatingRoleId(userId);
+    const result = await updateUserRole(userId, newRole);
+    if (result.success) {
+      toast.success("Role updated successfully.");
+      setEmployees((prev) =>
+        prev.map((emp) => (emp.id === userId ? { ...emp, role: newRole } : emp))
+      );
+    } else {
+      toast.error(result.error || "Failed to update role.");
+    }
+    setUpdatingRoleId(null);
   }
 
   return (
@@ -320,11 +342,22 @@ export default function SettingsPage() {
                         </span>
                       </td>
 
-                      {/* Role badge */}
+                      {/* Role badge / dropdown */}
                       <td className="px-5 py-3.5">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${ROLE_COLORS[emp.role] ?? "bg-gray-100 text-gray-600 border-gray-200"}`}>
-                          {ROLE_LABELS[emp.role] ?? emp.role}
-                        </span>
+                        <Select
+                          value={emp.role}
+                          onValueChange={(val) => handleRoleChange(emp.id, val)}
+                          disabled={updatingRoleId === emp.id}
+                        >
+                          <SelectTrigger className={`w-[140px] h-8 text-xs font-semibold rounded-full border ${ROLE_COLORS[emp.role] ?? "bg-gray-100 text-gray-600 border-gray-200"}`}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="EMPLOYEE">Employee</SelectItem>
+                            <SelectItem value="HR_OFFICER">HR Officer</SelectItem>
+                            <SelectItem value="PAYROLL_OFFICER">Payroll Officer</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </td>
 
                       {/* Date */}

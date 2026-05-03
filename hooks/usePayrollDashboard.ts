@@ -23,7 +23,12 @@ export interface PayrollDashboardData {
 }
 
 async function fetchPayrollDashboard(chartView: ChartView): Promise<PayrollDashboardData> {
-  const res = await fetch(`/api/payroll/dashboard?chartView=${chartView}`);
+  const companyId = typeof window !== 'undefined' ? localStorage.getItem("companyId") || "cmoo5tzca00020cu1yq9v6fso" : "cmoo5tzca00020cu1yq9v6fso";
+  const res = await fetch(`/api/payroll/dashboard?chartView=${chartView}`, {
+    headers: {
+      "x-company-id": companyId,
+    },
+  });
   if (!res.ok) throw new Error("Failed to fetch payroll dashboard");
   return res.json();
 }

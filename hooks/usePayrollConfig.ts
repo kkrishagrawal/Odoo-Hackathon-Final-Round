@@ -7,15 +7,24 @@ export interface PayrollConfigData {
 }
 
 async function fetchPayrollConfig(): Promise<{ config: PayrollConfigData | null }> {
-  const res = await fetch("/api/payroll/config");
+  const companyId = typeof window !== 'undefined' ? localStorage.getItem("companyId") || "cmoo5tzca00020cu1yq9v6fso" : "cmoo5tzca00020cu1yq9v6fso";
+  const res = await fetch("/api/payroll/config", {
+    headers: {
+      "x-company-id": companyId,
+    },
+  });
   if (!res.ok) throw new Error("Failed to fetch payroll config");
   return res.json();
 }
 
 async function savePayrollConfig(data: PayrollConfigData): Promise<{ config: PayrollConfigData }> {
+  const companyId = typeof window !== 'undefined' ? localStorage.getItem("companyId") || "cmoo5tzca00020cu1yq9v6fso" : "cmoo5tzca00020cu1yq9v6fso";
   const res = await fetch("/api/payroll/config", {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-company-id": companyId,
+    },
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("Failed to save payroll config");

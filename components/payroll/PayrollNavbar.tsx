@@ -3,20 +3,28 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
+import { useAuth, getRolePath } from "@/components/auth/AuthContext"; // adjust path if needed
 
 export default function PayrollNavbar() {
   const pathname = usePathname();
+  const { user } = useAuth();
+
+  // fallback to payroll if user not loaded yet
+  const basePath = user ? `/${getRolePath(user.role)}/payroll` : "/payroll";
 
   const tabs = [
-    { name: "Payroll Dashboard", href: "/payroll/payroll" },
-    { name: "Payrun", href: "/payroll/payrun" },
-    { name: "Payroll Configuration", href: "/payroll/config" },
+    { name: "Payroll Dashboard", href: `${basePath}/payroll` },
+    { name: "Payrun", href: `${basePath}/payrun` },
+    { name: "Payroll Configuration", href: `${basePath}/config` },
   ];
 
   return (
     <div className="border-b bg-white px-6 py-3 flex gap-4">
       {tabs.map((tab) => {
-        const isActive = pathname === tab.href;
+        const isActive =
+          tab.href === basePath
+            ? pathname === basePath
+            : pathname.startsWith(tab.href);
 
         return (
           <Link

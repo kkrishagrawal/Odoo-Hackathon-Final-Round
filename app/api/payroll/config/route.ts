@@ -7,7 +7,11 @@ import { prisma } from "@/lib/prisma";
 // import { getUser, requireRoles } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
-  const companyId = "cmoo5tzca00020cu1yq9v6fso";
+  // const user = await getUser(req);
+  // const authError = requireRoles(user, [UserRole.ADMIN, UserRole.PAYROLL_OFFICER]);
+  // if (authError) return authError;
+  // const companyId = user!.companyId;
+  const companyId = req.headers.get("x-company-id") || "cmoo5tzca00020cu1yq9v6fso";
 
   const company = await prisma.company.findUnique({
     where: { id: companyId },
@@ -27,7 +31,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const companyId = "cmoo5tzca00020cu1yq9v6fso";
+  // const user = await getUser(req);
+  // const authError = requireRoles(user, [UserRole.ADMIN]);  // Admin only
+  // if (authError) return authError;
+  // const companyId = user!.companyId;
+  const companyId = req.headers.get("x-company-id") || "cmoo5tzca00020cu1yq9v6fso";
 
   try {
     const body = await req.json();

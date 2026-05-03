@@ -38,7 +38,7 @@ const roleMenus = {
     { name: "Employees", path: "/admin/dashboard", icon: "group" },
     { name: "Attendance", path: "/admin/attendance", icon: "calendar_month" },
     { name: "Time Off", path: "/admin/leave", icon: "event_busy" },
-    { name: "Payroll", path: "/payroll", icon: "payments" },
+    { name: "Payroll", path: "/admin/payroll", icon: "payments" },
     { name: "Tickets", path: "/admin/tickets", icon: "confirmation_number" },
     { name: "Reports", path: "/admin/report", icon: "bar_chart" },
     { name: "Settings", path: "/admin/settings", icon: "settings" },
@@ -53,9 +53,8 @@ export default function Sidebar({ role }: SidebarProps) {
 
   return (
     <aside
-      className={`bg-surface-container-lowest border-r border-outline-variant/30 h-screen flex flex-col sticky top-0 shadow-[4px_0_24px_rgba(113,75,103,0.02)] transition-all duration-300 ease-in-out ${
-        collapsed ? "w-[72px]" : "w-64"
-      }`}
+      className={`bg-surface-container-lowest border-r border-outline-variant/30 h-screen flex flex-col sticky top-0 shadow-[4px_0_24px_rgba(113,75,103,0.02)] transition-all duration-300 ease-in-out ${collapsed ? "w-[72px]" : "w-64"
+        }`}
     >
       {/* Header */}
       <div className="h-20 flex items-center justify-between px-4 border-b border-outline-variant/20">
@@ -84,7 +83,7 @@ export default function Sidebar({ role }: SidebarProps) {
             </p>
           </div>
         )}
-        
+
         {menuItems.map((item) => {
           const isActive = pathname?.startsWith(item.path);
           return (
@@ -92,11 +91,10 @@ export default function Sidebar({ role }: SidebarProps) {
               key={item.path}
               href={item.path}
               title={collapsed ? item.name : undefined}
-              className={`flex items-center ${collapsed ? "justify-center" : "gap-3"} px-3 py-3 rounded-lg font-body-md transition-all duration-200 ${
-                isActive
+              className={`flex items-center ${collapsed ? "justify-center" : "gap-3"} px-3 py-3 rounded-lg font-body-md transition-all duration-200 ${isActive
                   ? "bg-primary-container text-white shadow-md"
                   : "text-on-surface-variant hover:bg-surface-container-low hover:text-primary-container"
-              }`}
+                }`}
             >
               <span className={`material-symbols-outlined text-xl ${isActive ? "text-white" : ""}`}>
                 {item.icon}
@@ -109,19 +107,18 @@ export default function Sidebar({ role }: SidebarProps) {
 
       {/* Footer */}
       <div className={`${collapsed ? "p-2" : "p-4"} border-t border-outline-variant/20 space-y-1`}>
-        <Link 
+        <Link
           href="/chat"
           title={collapsed ? "EmMCP Chat" : undefined}
-          className={`flex items-center ${collapsed ? "justify-center" : "gap-3"} px-3 py-3 w-full rounded-lg font-body-md transition-colors ${
-            pathname === "/chat"
+          className={`flex items-center ${collapsed ? "justify-center" : "gap-3"} px-3 py-3 w-full rounded-lg font-body-md transition-colors ${pathname === "/chat"
               ? "bg-primary-container text-white"
               : "text-on-surface-variant hover:bg-surface-container-low hover:text-primary-container"
-          }`}
+            }`}
         >
           <span className={`material-symbols-outlined text-xl ${pathname === "/chat" ? "text-white" : ""}`}>smart_toy</span>
           {!collapsed && <span className="font-medium">EmMCP Chat</span>}
         </Link>
-        <button 
+        <button
           onClick={() => { logout(); }}
           title={collapsed ? "Logout" : undefined}
           className={`cursor-pointer flex items-center ${collapsed ? "justify-center" : "gap-3"} px-3 py-3 w-full rounded-lg font-body-md text-error hover:bg-error/10 transition-colors`}

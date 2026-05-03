@@ -6,7 +6,12 @@ import { UserRole, PayslipStatus } from "@/lib/generated/prisma/client";
 // Body: { month: number, year: number }
 // Generates a payrun for the given month/year for all employees in the company
 export async function POST(req: NextRequest) {
-  const companyId = "cmoo5tzca00020cu1yq9v6fso";
+  // TODO: Auth guard
+  // const user = await getUser(req);
+  // const authError = requireRoles(user, [UserRole.ADMIN, UserRole.PAYROLL_OFFICER]);
+  // if (authError) return authError;
+  // const companyId = user!.companyId;
+  const companyId = req.headers.get("x-company-id") || "cmoo5tzca00020cu1yq9v6fso";
 
   const { month, year } = await req.json();
   if (!month || !year) {

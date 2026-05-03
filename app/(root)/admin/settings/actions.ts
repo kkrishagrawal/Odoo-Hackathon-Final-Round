@@ -229,3 +229,35 @@ export async function getCompanyEmployees(): Promise<EmployeeRow[]> {
     emailSent: true, // email is sent on creation
   }));
 }
+
+// ─── Update User Role ───────────────────────────────────────────────────────
+
+export async function updateUserRole(userId: string, newRole: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const admin = await getAdminWithCompany();
+    if (!admin) {
+      return { success: false, error: "Unauthorized." };
+    }
+
+    const validRoles = ["EMPLOYEE", "HR_OFFICER", "PAYROLL_OFFICER"];
+    if (!validRoles.includes(newRole)) {
+      return { success: false, error: "Invalid role." };
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user || user.companyId !== admin.companyId) {
+      return { success: false, error: "User not found." };
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { role: newRole as "EMPLOYEE" | "HR_OFFICER" | "PAYROLL_OFFICER" },
+    });
+
+    return { success: true };
+  } catch (err) {
+    console.error("Update role error:", err);
+    return { success: false, error: "Something went wrong." };
+  }
+}
+
