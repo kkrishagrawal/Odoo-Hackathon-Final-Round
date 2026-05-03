@@ -9,7 +9,7 @@ export default function PayrollNavbar() {
   const pathname = usePathname();
   const { user } = useAuth();
   // only if the url has /payroll/payroll in it then render this navbar
-  if (!pathname.includes("/payroll/payroll")) {
+  if (!pathname.includes("/payroll/")) {
     return null;
   }
 

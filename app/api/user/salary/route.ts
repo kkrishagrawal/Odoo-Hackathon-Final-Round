@@ -43,15 +43,15 @@ export async function PUT(req: NextRequest) {
     bonusPct: parseFloat(fields.bonusPct) || 8.33,
     ltaPct: parseFloat(fields.ltaPct) || 8.33,
     pfEmployeePctOverride:
-      fields.pfEmployeePctOverride !== undefined
+      fields.pfEmployeePctOverride !== undefined && fields.pfEmployeePctOverride !== null
         ? Number(fields.pfEmployeePctOverride)
-        : undefined,
+        : null,
   };
 
   if (
+    data.pfEmployeePctOverride !== null &&
     data.pfEmployeePctOverride !== undefined &&
-    (data.pfEmployeePctOverride < 12 ||
-      data.pfEmployeePctOverride > 20)
+    (data.pfEmployeePctOverride < 12 || data.pfEmployeePctOverride > 20)
   ) {
     return NextResponse.json(
       { error: "PF override must be between 12 and 20" },

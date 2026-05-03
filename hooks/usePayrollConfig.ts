@@ -18,7 +18,7 @@ async function fetchPayrollConfig(): Promise<{ config: PayrollConfigData | null 
 }
 
 async function savePayrollConfig(data: PayrollConfigData): Promise<{ config: PayrollConfigData }> {
-  const companyId = typeof window !== 'undefined' ? localStorage.getItem("companyId") || "cmoo5tzca00020cu1yq9v6fso" : "cmoo5tzca00020cu1yq9v6fso";
+  const companyId = typeof window !== 'undefined' ? localStorage.getItem("company.id") || "cmoo5tzca00020cu1yq9v6fso" : "cmoo5tzca00020cu1yq9v6fso";
   const res = await fetch("/api/payroll/config", {
     method: "PUT",
     headers: {

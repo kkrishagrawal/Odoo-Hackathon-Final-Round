@@ -74,13 +74,14 @@ export async function PUT(req: NextRequest) {
       );
     }
 
+    const exists = await prisma.company.findUnique({ where: { id: companyId }, select: { id: true } });
+    if (!exists) {
+      return NextResponse.json({ error: "Company not found" }, { status: 404 });
+    }
+
     const company = await prisma.company.update({
       where: { id: companyId },
-      data: {
-        pfEmployeePct,
-        pfEmployerPct,
-        professionalTax,
-      },
+      data: { pfEmployeePct, pfEmployerPct, professionalTax },
     });
 
     return NextResponse.json({
@@ -93,7 +94,7 @@ export async function PUT(req: NextRequest) {
   } catch (err) {
     console.error(err);
     return NextResponse.json(
-      { error: "Failed to update payroll config" },
+      { error: err instanceof Error ? err.message : String(err) },
       { status: 500 }
     );
   }

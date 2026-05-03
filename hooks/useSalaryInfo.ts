@@ -20,6 +20,7 @@ async function fetchSalaryInfo(userId: string): Promise<{ salaryInfo: SalaryInfo
 }
 
 async function saveSalaryInfo(data: Partial<SalaryInfoData> & { userId: string }): Promise<{ salaryInfo: SalaryInfoData }> {
+  console.log("Saving salary info:", JSON.stringify(data, null, 2));
   const res = await fetch("/api/user/salary", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },

@@ -188,7 +188,7 @@ export function SalaryInfoTab({ userId, canEdit }: Props) {
     }
 
     const pfEmployeePct = form.pfEmployeePctOverride ?? config.pfEmployeePct;
-    const isInvalidPf = pfEmployeePct < 12;
+    const isInvalidPf = pfEmployeePct < 12 || pfEmployeePct > 20;
 
     return (
         <div className="space-y-10">
@@ -301,15 +301,29 @@ export function SalaryInfoTab({ userId, canEdit }: Props) {
                             <h3 className="text-sm font-semibold">Provident Fund & Deductions</h3>
 
                             {/* PF */}
-                            <BreakdownRow
-                                label="PF Employee %"
-                                value={form.pfEmployeePctOverride ?? config.pfEmployeePct}
-                                editable={isEditing}
-                                onEdit={(v) => set("pfEmployeePctOverride", v)}
-                            />
+                            <div className="grid grid-cols-[1fr_120px_100px] gap-3 items-center">
+                                <p className="text-sm text-muted-foreground">PF Employee</p>
+                                <input
+                                    value={`₹ ${computed.pfEmployee.toLocaleString("en-IN")}`}
+                                    readOnly
+                                    className="border rounded px-2 py-1 bg-muted text-sm text-right"
+                                />
+                                <div className="grid grid-cols-2 w-48">
+                                    <input
+                                        type={isEditing ? "number" : "text"}
+                                        value={isEditing ? (form.pfEmployeePctOverride ?? config.pfEmployeePct) : `${(form.pfEmployeePctOverride ?? config.pfEmployeePct).toFixed(2)}%`}
+                                        readOnly={!isEditing}
+                                        onChange={(e) => set("pfEmployeePctOverride", e.target.value)}
+                                        className={`border rounded px-2 py-1 text-sm text-right ${isEditing ? "bg-background border-outline-variant/50" : "bg-muted"}`}
+                                    />
+                                    <span className="align-middle">
+                                        %
+                                    </span>
+                                </div>
+                            </div>
                             {isInvalidPf && (
                                 <p className="text-xs text-red-500 text-right">
-                                    PF Employee contribution cannot be less than 12%
+                                    PF Employee contribution cannot be less than 12% or more than 20%
                                 </p>
                             )}
                             <BreakdownRow label="PF Employer" value={computed.pfEmployer} percent={config.pfEmployerPct} />
