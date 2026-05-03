@@ -29,24 +29,64 @@ export async function GET(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   const companyId = "cmoo5tzca00020cu1yq9v6fso";
 
-  const body = await req.json();
-  const data = {
-    pfEmployeePct: parseFloat(body.pfEmployeePct) || 12,
-    pfEmployerPct: parseFloat(body.pfEmployerPct) || 12,
-    professionalTax: parseFloat(body.professionalTax) || 200,
-  };
+  try {
+    const body = await req.json();
 
-  const company = await prisma.company.update({
-    where: { id: companyId },
-    data,
-  });
+    const pfEmployeePct = Number(body.pfEmployeePct);
+    const pfEmployerPct = Number(body.pfEmployerPct);
+    const professionalTax = Number(body.professionalTax);
 
-  return NextResponse.json({
-    config: {
-      pfEmployeePct: company.pfEmployeePct.toNumber(),
-      pfEmployerPct: company.pfEmployerPct.toNumber(),
-      professionalTax: company.professionalTax.toNumber(),
-    },
-  });
+    if (
+      Number.isNaN(pfEmployeePct) ||
+      Number.isNaN(pfEmployerPct) ||
+      Number.isNaN(professionalTax)
+    ) {
+      return NextResponse.json(
+        { error: "All values must be valid numbers" },
+        { status: 400 }
+      );
+    }
 
+    if (
+      pfEmployeePct < 12 ||
+      pfEmployeePct > 20 ||
+      pfEmployerPct < 12 ||
+      pfEmployerPct > 20
+    ) {
+      return NextResponse.json(
+        { error: "PF percentage must be between 12 and 20" },
+        { status: 400 }
+      );
+    }
+
+    if (professionalTax < 0) {
+      return NextResponse.json(
+        { error: "Professional tax cannot be negative" },
+        { status: 400 }
+      );
+    }
+
+    const company = await prisma.company.update({
+      where: { id: companyId },
+      data: {
+        pfEmployeePct,
+        pfEmployerPct,
+        professionalTax,
+      },
+    });
+
+    return NextResponse.json({
+      config: {
+        pfEmployeePct: company.pfEmployeePct.toNumber(),
+        pfEmployerPct: company.pfEmployerPct.toNumber(),
+        professionalTax: company.professionalTax.toNumber(),
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json(
+      { error: "Failed to update payroll config" },
+      { status: 500 }
+    );
+  }
 }

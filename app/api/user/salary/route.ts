@@ -34,15 +34,30 @@ export async function PUT(req: NextRequest) {
 
   // Parse all numeric fields safely
   const data = {
-    monthlyWage:        parseFloat(fields.monthlyWage)        || 0,
-    workingDaysPerWeek: parseInt(fields.workingDaysPerWeek)   || 5,
-    breakTimeHrs:       parseFloat(fields.breakTimeHrs)       || 1,
-    basicSalaryPct:     parseFloat(fields.basicSalaryPct)     || 50,
-    hraPct:             parseFloat(fields.hraPct)             || 50,
-    standardAllowance:  parseFloat(fields.standardAllowance)  || 0,
-    bonusPct:           parseFloat(fields.bonusPct)           || 8.33,
-    ltaPct:             parseFloat(fields.ltaPct)             || 8.33,
+    monthlyWage: parseFloat(fields.monthlyWage) || 0,
+    workingDaysPerWeek: parseInt(fields.workingDaysPerWeek) || 5,
+    breakTimeHrs: parseFloat(fields.breakTimeHrs) || 1,
+    basicSalaryPct: parseFloat(fields.basicSalaryPct) || 50,
+    hraPct: parseFloat(fields.hraPct) || 50,
+    standardAllowance: parseFloat(fields.standardAllowance) || 0,
+    bonusPct: parseFloat(fields.bonusPct) || 8.33,
+    ltaPct: parseFloat(fields.ltaPct) || 8.33,
+    pfEmployeePctOverride:
+      fields.pfEmployeePctOverride !== undefined
+        ? Number(fields.pfEmployeePctOverride)
+        : undefined,
   };
+
+  if (
+    data.pfEmployeePctOverride !== undefined &&
+    (data.pfEmployeePctOverride < 12 ||
+      data.pfEmployeePctOverride > 20)
+  ) {
+    return NextResponse.json(
+      { error: "PF override must be between 12 and 20" },
+      { status: 400 }
+    );
+  }
 
   const salaryInfo = await prisma.salaryInfo.upsert({
     where: { userId },
