@@ -3,13 +3,14 @@ import React from 'react';
 export type EmployeeStatus = 'present' | 'leave' | 'absent';
 
 interface EmployeeCardProps {
+  id: string;
   name: string;
   role: string;
   status: EmployeeStatus;
   avatarUrl?: string;
 }
 
-export default function EmployeeCard({ name, role, status, avatarUrl }: EmployeeCardProps) {
+export default function EmployeeCard({ id, name, role, status, avatarUrl }: EmployeeCardProps) {
   const getStatusIcon = () => {
     switch (status) {
       case 'present':
@@ -21,6 +22,14 @@ export default function EmployeeCard({ name, role, status, avatarUrl }: Employee
     }
   };
 
+  const imageFiles = [
+    "image.png",
+    "image copy.png",
+    ...Array.from({ length: 14 }, (_, i) => `image copy ${i + 2}.png`),
+  ];
+  const imageIndex = id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) % imageFiles.length;
+  const localAvatarUrl = `/profile/${imageFiles[imageIndex]}`;
+
   return (
     <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-5 flex flex-col items-center shadow-sm hover:shadow-[0_8px_30px_rgba(113,75,103,0.08)] transition-all relative group">
       <div className="absolute top-4 right-4">
@@ -28,8 +37,8 @@ export default function EmployeeCard({ name, role, status, avatarUrl }: Employee
       </div>
       
       <div className="w-24 h-24 rounded-2xl bg-secondary-container/20 text-on-secondary-container flex items-center justify-center mb-4 overflow-hidden border border-outline-variant/20 group-hover:scale-105 transition-transform">
-        {avatarUrl ? (
-          <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+        {avatarUrl || localAvatarUrl ? (
+          <img src={avatarUrl || localAvatarUrl} alt={name} className="w-full h-full object-cover" />
         ) : (
           <span className="material-symbols-outlined text-5xl opacity-50">person</span>
         )}

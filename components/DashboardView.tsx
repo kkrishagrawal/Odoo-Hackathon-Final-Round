@@ -99,6 +99,7 @@ function DashboardContent() {
             
             const card = (
               <EmployeeCard
+                id={emp.id}
                 name={emp.name}
                 role={displayRole}
                 status={displayStatus}

@@ -70,6 +70,17 @@ function TopBarContent() {
     ? user.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
     : "??";
 
+  // Deterministic local avatar logic based on ID
+  const imageFiles = [
+    "image.png",
+    "image copy.png",
+    ...Array.from({ length: 14 }, (_, i) => `image copy ${i + 2}.png`),
+  ];
+  const imageIndex = user?.id
+    ? user.id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) % imageFiles.length
+    : 0;
+  const localAvatarUrl = `/profile/${imageFiles[imageIndex]}`;
+
   return (
     <div className="h-20 border-b border-outline-variant/20 bg-surface-container-lowest flex items-center justify-between px-8 shrink-0 z-40 relative">
       {/* Search */}
@@ -153,8 +164,8 @@ function TopBarContent() {
             }}
             className="w-10 h-10 rounded-lg bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold overflow-hidden border border-outline-variant/30 hover:opacity-90 transition-opacity text-sm"
           >
-            {user?.profilePicUrl ? (
-              <img src={user.profilePicUrl} alt={user.name} className="w-full h-full object-cover" />
+            {user?.profilePicUrl || localAvatarUrl ? (
+              <img src={user?.profilePicUrl || localAvatarUrl} alt={user?.name || "Profile"} className="w-full h-full object-cover" />
             ) : (
               initials
             )}

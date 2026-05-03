@@ -8,6 +8,10 @@ import { useAuth, getRolePath } from "@/components/auth/AuthContext"; // adjust 
 export default function PayrollNavbar() {
   const pathname = usePathname();
   const { user } = useAuth();
+  // only if the url has /payroll/payroll in it then render this navbar
+  if (!pathname.includes("/payroll/payroll")) {
+    return null;
+  }
 
   // fallback to payroll if user not loaded yet
   const basePath =

@@ -179,6 +179,17 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
     ? displayUser.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
     : "??";
 
+  // Deterministic local avatar logic based on ID
+  const imageFiles = [
+    "image.png",
+    "image copy.png",
+    ...Array.from({ length: 14 }, (_, i) => `image copy ${i + 2}.png`),
+  ];
+  const imageIndex = displayUser?.id
+    ? displayUser.id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) % imageFiles.length
+    : 0;
+  const localAvatarUrl = `/profile/${imageFiles[imageIndex]}`;
+
   // Helper for input className
   const editableClass = (canEdit: boolean) =>
     `w-full bg-transparent border-b py-1 mt-1 focus:outline-none text-on-surface ${isEditing && canEdit ? "border-outline-variant/50 focus:border-primary-container" : "border-transparent"}`;
@@ -209,8 +220,8 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
       <div className="flex flex-col md:flex-row gap-12 mb-10 pt-4 md:pt-0">
         {/* Avatar */}
         <div className="flex-shrink-0 relative group w-40 h-40 rounded-full bg-[#5A3C53] flex items-center justify-center border-4 border-surface-container-lowest shadow-md overflow-hidden">
-          {displayUser?.profilePicUrl ? (
-            <img src={displayUser.profilePicUrl} alt={displayUser.name} className="w-full h-full object-cover" />
+          {displayUser?.profilePicUrl || localAvatarUrl ? (
+            <img src={displayUser?.profilePicUrl || localAvatarUrl} alt={displayUser?.name || "Profile"} className="w-full h-full object-cover" />
           ) : (
             <span className="text-4xl text-white font-h1">{initials}</span>
           )}
