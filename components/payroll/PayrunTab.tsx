@@ -6,7 +6,6 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
-import { usePathname } from "next/navigation";
 import { useAuth, getRolePath } from "../auth/AuthContext";
 
 import { Button } from "@/components/ui/button";
@@ -25,7 +24,7 @@ import { toast } from "sonner";
 // Fetcher
 async function fetchPayrun(month: number, year: number) {
   const companyId = typeof window !== 'undefined' ? localStorage.getItem("companyId") : "cmoo5tzca00020cu1yq9v6fso";
-  const res = await fetch("/api/...", {
+  const res = await fetch(`/api/payrun?month=${month}&year=${year}`, {
     headers: {
       ...(companyId && { "x-company-id": companyId }),
     },
