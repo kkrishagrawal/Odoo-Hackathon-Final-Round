@@ -9,8 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CostChart } from "./CostChart";
 import { usePayrollDashboard, ChartView } from "@/hooks/usePayrollDashboard";
-
-const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export function PayrollDashboard() {
   const [costChartView, setCostChartView] = useState<ChartView>("monthly");
@@ -22,7 +21,6 @@ export function PayrollDashboard() {
 
   // Warnings and payruns come from either query (same data regardless of chart toggle)
   const meta = costQuery.data ?? countQuery.data;
-
   return (
     <div className="space-y-6 p-6">
       {/* ── Row 1: Warnings + Payruns ── */}

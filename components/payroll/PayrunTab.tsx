@@ -6,6 +6,8 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
+import { usePathname } from "next/navigation";
+import { useAuth, getRolePath } from "../auth/AuthContext";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,8 +25,10 @@ import { toast } from "sonner";
 // Fetcher
 async function fetchPayrun(month: number, year: number) {
   const companyId = typeof window !== 'undefined' ? localStorage.getItem("companyId") : "cmoo5tzca00020cu1yq9v6fso";
-  const res = await fetch(`/api/payrun?month=${month}&year=${year}`, {
-    headers: { "x-company-id": companyId }
+  const res = await fetch("/api/...", {
+    headers: {
+      ...(companyId && { "x-company-id": companyId }),
+    },
   });
   if (!res.ok) throw new Error("Failed to fetch payrun");
   return res.json();
@@ -45,7 +49,11 @@ export default function PayrunTab() {
   });
 
   const payslips = data?.payslips || [];
-
+  const { user } = useAuth();
+  const basePath =
+    user?.role === "ADMIN"
+      ? `/${getRolePath(user.role)}/payroll`
+      : "/payroll";
   //Mutation
   const generateMutation = useMutation({
     mutationFn: async () => {
@@ -242,7 +250,7 @@ export default function PayrunTab() {
               <TableRow
                 key={p.id}
                 className="cursor-pointer hover:bg-muted/50"
-                onClick={() => router.push(`/payroll/payrun/${p.id}`)}
+                onClick={() => router.push(`${basePath}/payrun/${p.id}`)}
               >
                 <TableCell>
                   {formatPeriod(data.month, data.year)}

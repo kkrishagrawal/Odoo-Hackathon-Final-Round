@@ -3,14 +3,12 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
+import { SalaryStatementPDF } from "@/components/payroll/SalaryStatementPDF";
 
 const PDFDownloadLinkDynamic = dynamic(
   () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
   { ssr: false }
 );
-
-// 👉 You must create this (same style as PayslipPDF)
-import { SalaryStatementPDF } from "@/components/payroll/SalaryStatementPDF";
 
 interface Employee {
   id: string;
@@ -24,15 +22,23 @@ export default function ReportsPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  // Fetch employees
+  // 🔹 Fetch employees
   useEffect(() => {
-    fetch("/api/users") // 👈 you likely already have this
-      .then((res) => res.json())
-      .then(setEmployees)
-      .catch(console.error);
+    const loadUsers = async () => {
+      try {
+        const res = await fetch("/api/user");
+        if (!res.ok) throw new Error("Failed to fetch users");
+        const json = await res.json();
+        setEmployees(json);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadUsers();
   }, []);
 
-  // Fetch report
+  // 🔹 Fetch report
   const fetchReport = async () => {
     if (!userId) return;
 
@@ -42,7 +48,7 @@ export default function ReportsPage() {
         `/api/reports/salary-statement?userId=${userId}&year=${year}`
       );
 
-      if (!res.ok) throw new Error("Failed");
+      if (!res.ok) throw new Error("Failed to fetch report");
 
       const json = await res.json();
       setData(json);
@@ -56,7 +62,9 @@ export default function ReportsPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-semibold">Salary Statement Report</h1>
+      <h1 className="text-2xl font-semibold">
+        Salary Statement Report
+      </h1>
 
       {/* Controls */}
       <div className="flex gap-4">
@@ -79,7 +87,9 @@ export default function ReportsPage() {
           onChange={(e) => setYear(Number(e.target.value))}
         >
           {[2023, 2024, 2025, 2026].map((y) => (
-            <option key={y}>{y}</option>
+            <option key={y} value={y}>
+              {y}
+            </option>
           ))}
         </select>
 
@@ -91,20 +101,31 @@ export default function ReportsPage() {
       {/* Preview */}
       {data && (
         <div className="border rounded p-4 space-y-4">
-          <div>
-            <p><strong>Employee:</strong> {data.employeeName}</p>
-            <p><strong>Company:</strong> {data.companyName}</p>
-            <p><strong>Year:</strong> {data.year}</p>
+          <div className="space-y-1">
+            <p>
+              <strong>Employee:</strong> {data.employeeName}
+            </p>
+            <p>
+              <strong>Company:</strong> {data.companyName}
+            </p>
+            <p>
+              <strong>Year:</strong> {data.year}
+            </p>
           </div>
 
           <div>
-            <p><strong>Net Salary:</strong> ₹{data.totals.net}</p>
+            <p className="text-lg font-semibold">
+              Net Salary: ₹{data.totals.net}
+            </p>
           </div>
 
-          {/* Print */}
+          {/* Print PDF */}
           <PDFDownloadLinkDynamic
             document={<SalaryStatementPDF {...data} />}
-            fileName={`salary_statement_${data.employeeName}_${data.year}.pdf`}
+            fileName={`salary_statement_${data.employeeName.replace(
+              /\s+/g,
+              "_"
+            )}_${data.year}.pdf`}
           >
             {({ loading }) => (
               <Button variant="outline">
