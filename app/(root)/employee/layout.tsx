@@ -3,6 +3,7 @@
 import Sidebar from "@/components/Sidebar";
 import EmVoice from "@/components/EmVoice";
 import { RoleGuard } from "@/components/auth/AuthContext";
+import TopBar from "@/components/TopBar";
 
 export default function EmployeeLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -10,6 +11,7 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
       <div className="flex h-screen overflow-hidden">
         <Sidebar role="employee" />
         <main className="flex-1 flex flex-col overflow-hidden">
+          <TopBar />
           <div className="flex-1 overflow-y-auto relative">
             {children}
             <EmVoice />

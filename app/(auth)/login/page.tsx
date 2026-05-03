@@ -18,7 +18,7 @@ function getDashboardRoute(role: string): string {
     case "HR_OFFICER":
       return "/hr/dashboard";
     case "PAYROLL_OFFICER":
-      return "/payroll/dashboard";
+      return "/payroll/payroll";
     case "EMPLOYEE":
       return "/employee/dashboard";
     default:

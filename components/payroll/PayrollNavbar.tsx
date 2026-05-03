@@ -8,9 +8,9 @@ export default function PayrollNavbar() {
   const pathname = usePathname();
 
   const tabs = [
-    { name: "Dashboard", href: "/admin/payroll/dashboard" },
-    { name: "Payrun", href: "/admin/payroll/payrun" },
-    { name: "Configuration", href: "/admin/payroll/config" },
+    { name: "Payroll Dashboard", href: "/payroll/payroll" },
+    { name: "Payrun", href: "/payroll/payrun" },
+    { name: "Payroll Configuration", href: "/payroll/config" },
   ];
 
   return (

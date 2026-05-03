@@ -223,7 +223,7 @@ export default function PayrunTab() {
               <TableRow
                 key={p.id}
                 className="cursor-pointer hover:bg-muted/50"
-                onClick={() => router.push(`/admin/payroll/payrun/${p.id}`)}
+                onClick={() => router.push(`/payroll/payrun/${p.id}`)}
               >
                 <TableCell>
                   {formatPeriod(data.month, data.year)}

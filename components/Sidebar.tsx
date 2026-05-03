@@ -38,7 +38,7 @@ const roleMenus = {
     { name: "Employees", path: "/admin/dashboard", icon: "group" },
     { name: "Attendance", path: "/admin/attendance", icon: "calendar_month" },
     { name: "Time Off", path: "/admin/leave", icon: "event_busy" },
-    { name: "Payroll", path: "/admin/payroll", icon: "payments" },
+    { name: "Payroll", path: "/payroll", icon: "payments" },
     { name: "Tickets", path: "/admin/tickets", icon: "confirmation_number" },
     { name: "Reports", path: "/admin/report", icon: "bar_chart" },
     { name: "Settings", path: "/admin/settings", icon: "settings" },
