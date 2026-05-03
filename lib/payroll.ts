@@ -78,8 +78,26 @@ export function scaleToPayableDays(
 ): SalaryBreakdown {
     if (totalWorkingDays === 0) return breakdown;
 
-    const ratio = payableDays / totalWorkingDays;
+    const unpaidDays = totalWorkingDays - payableDays;
 
+    const unpaidDeduction =
+        (breakdown.grossWage / totalWorkingDays) * unpaidDays;
+
+    const payableGross = breakdown.grossWage - unpaidDeduction;
+
+    const ratio = payableGross / breakdown.grossWage;
+    
+    function getUnpaidLeaveAmount(p: any, totalWorkingDays: number) {
+        const payableDays = p.attendanceDays + p.paidLeaveDays;
+
+        if (!payableDays || !totalWorkingDays) return 0;
+
+        const fullGross = p.grossWage * (totalWorkingDays / payableDays);
+
+        const perDay = fullGross / totalWorkingDays;
+
+        return Math.round(perDay * p.unpaidLeaveDays);
+    }
     const scaled = {
         monthlyWage: breakdown.monthlyWage * ratio,
         basicSalary: breakdown.basicSalary * ratio,

@@ -49,8 +49,8 @@ export interface PayslipPDFProps {
 
 //  Styles 
 
-const PURPLE = "#5A3C7E";
-const TEAL = "#2ABFBF";
+const PURPLE = "#714B67";
+const TEAL = "#15AABF";
 const LIGHT_PURPLE = "#F3EEF8";
 
 const s = StyleSheet.create({
@@ -190,7 +190,10 @@ const s = StyleSheet.create({
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function fmtINR(n: number): string {
-    return `\u20B9 ${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `Rs ${Number(n || 0).toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    })}`;
 }
 
 // Convert number to words (Indian system, up to crores)
@@ -360,7 +363,6 @@ export function PayslipPDF(p: PayslipPDFProps) {
                     </View>
                     <View style={s.netRight}>
                         <Text style={s.netAmount}>{fmtINR(p.netWage)}</Text>
-                        <Text style={s.netWords}>[Amount in words] only</Text>
                     </View>
                 </View>
 

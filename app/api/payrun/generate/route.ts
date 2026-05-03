@@ -6,11 +6,6 @@ import { UserRole, PayslipStatus } from "@/lib/generated/prisma/client";
 // Body: { month: number, year: number }
 // Generates a payrun for the given month/year for all employees in the company
 export async function POST(req: NextRequest) {
-  // TODO: Auth guard
-  // const user = await getUser(req);
-  // const authError = requireRoles(user, [UserRole.ADMIN, UserRole.PAYROLL_OFFICER]);
-  // if (authError) return authError;
-  // const companyId = user!.companyId;
   const companyId = "cmoo5tzca00020cu1yq9v6fso";
 
   const { month, year } = await req.json();
@@ -20,10 +15,10 @@ export async function POST(req: NextRequest) {
 
   // Check if payrun already exists
   const existing = await prisma.payrun.findUnique({
-    where: { companyId_month_year: { companyId, month, year } },
+    where: { companyId_month_year: { companyId, month, year }}, include: { payslips: true },
   });
   if (existing) {
-    return NextResponse.json({ error: "Payrun already exists" }, { status: 400 });
+    return NextResponse.json({ payrun: existing, alreadyExists: true, });
   }
 
   // Get all employees
@@ -66,5 +61,8 @@ export async function POST(req: NextRequest) {
     include: { payslips: true },
   });
 
-  return NextResponse.json(payrun);
+  return NextResponse.json({
+    payrun,
+    alreadyExists: false,
+  });
 }

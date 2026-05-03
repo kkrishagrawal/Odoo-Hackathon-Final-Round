@@ -23,13 +23,14 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
   const isHR = authUser?.role === "HR_OFFICER";
   const isAdmin = authUser?.role === "ADMIN";
   const isViewingOther = !!targetUserId && targetUserId !== authUser?.id;
+  const isSelf = !isViewingOther;
 
   // When viewing another user, admin/hr/payroll can edit everything
   const canEditTopSection = isViewingOther
     ? (isAdmin || isHR || isPayrollOfficer)  // viewing someone else's profile
     : !isEmployee;                            // viewing own profile
 
-  const canViewSalaryAndSecurity = isAdmin || isPayrollOfficer;
+  const canViewSalaryAndSecurity = isAdmin || isPayrollOfficer || isSelf;
   const canEditSalary = isAdmin || isPayrollOfficer;
 
   const [isEditing, setIsEditing] = useState(false);
@@ -305,7 +306,7 @@ export function ProfileView({ targetUserId }: ProfileViewProps) {
           <TabsTrigger value="private-info" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-container rounded-none pb-3 pt-2 px-1 text-base text-on-surface-variant data-[state=active]:text-on-surface cursor-pointer">
             Private Info
           </TabsTrigger>
-          <TabsTrigger value="salary-info" disabled={!canViewSalaryAndSecurity} className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-container rounded-none pb-3 pt-2 px-1 text-base text-on-surface-variant data-[state=active]:text-on-surface disabled:opacity-30 cursor-pointer">
+          <TabsTrigger value="salary-info" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-container rounded-none pb-3 pt-2 px-1 text-base text-on-surface-variant data-[state=active]:text-on-surface disabled:opacity-30 cursor-pointer">
             Salary Info
           </TabsTrigger>
           <TabsTrigger value="security" disabled={isViewingOther} className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-container rounded-none pb-3 pt-2 px-1 text-base text-on-surface-variant data-[state=active]:text-on-surface disabled:opacity-30">

@@ -7,10 +7,6 @@ import { prisma } from "@/lib/prisma";
 // import { getUser, requireRoles } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
-  // const user = await getUser(req);
-  // const authError = requireRoles(user, [UserRole.ADMIN, UserRole.PAYROLL_OFFICER]);
-  // if (authError) return authError;
-  // const companyId = user!.companyId;
   const companyId = "cmoo5tzca00020cu1yq9v6fso";
 
   const company = await prisma.company.findUnique({
@@ -31,10 +27,6 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  // const user = await getUser(req);
-  // const authError = requireRoles(user, [UserRole.ADMIN]);  // Admin only
-  // if (authError) return authError;
-  // const companyId = user!.companyId;
   const companyId = "cmoo5tzca00020cu1yq9v6fso";
 
   const body = await req.json();

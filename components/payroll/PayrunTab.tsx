@@ -21,8 +21,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 // Fetcher
-async function fetchPayrun() {
-  const res = await fetch("/api/payrun");
+async function fetchPayrun(month: number, year: number) {
+  const res = await fetch(`/api/payrun?month=${month}&year=${year}`);
   if (!res.ok) throw new Error("Failed to fetch payrun");
   return res.json();
 }
@@ -37,13 +37,13 @@ export default function PayrunTab() {
 
   // Query
   const { data, isLoading } = useQuery({
-    queryKey: ["payrun"],
-    queryFn: fetchPayrun,
+    queryKey: ["payrun", month, year],
+    queryFn: () => fetchPayrun(month, year),
   });
 
   const payslips = data?.payslips || [];
 
-  // Mutations
+  //Mutation
   const generateMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch("/api/payrun/generate", {
@@ -51,10 +51,25 @@ export default function PayrunTab() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ month, year }),
       });
+
       if (!res.ok) throw new Error("Failed to generate payrun");
+      return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["payrun"] });
+
+    onSuccess: (data) => {
+      queryClient.setQueryData(
+        ["payrun", month, year],
+        data.payrun
+      );
+
+      // optional but good
+      queryClient.invalidateQueries({ queryKey: ["payrun", month, year] });
+
+      if (data.alreadyExists) {
+        toast.info("Payrun already exists. Showing existing one.");
+      } else {
+        toast.success("Payrun generated successfully.");
+      }
     },
   });
 
@@ -69,7 +84,7 @@ export default function PayrunTab() {
       if (!res.ok) throw new Error("Failed to compute payrun");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["payrun"] });
+      queryClient.invalidateQueries({ queryKey: ["payrun", month, year] });
     },
   });
 
@@ -85,7 +100,7 @@ export default function PayrunTab() {
       return res.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["payrun"] });
+      queryClient.invalidateQueries({ queryKey: ["payrun", month, year] });
       toast.success(`${data.validatedCount} payslip(s) validated`);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -103,7 +118,7 @@ export default function PayrunTab() {
       return res.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["payrun"] });
+      queryClient.invalidateQueries({ queryKey: ["payrun", month, year] });
       toast.success(`${data.cancelledCount} payslip(s) cancelled`);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -213,7 +228,7 @@ export default function PayrunTab() {
                 <TableCell>
                   {formatPeriod(data.month, data.year)}
                 </TableCell>
-                <TableCell>{p.user.name}</TableCell>
+                <TableCell>{p.user?.name}</TableCell>
                 <TableCell>₹ {p.employerCost}</TableCell>
                 <TableCell>₹ {p.basicSalary}</TableCell>
                 <TableCell>₹ {p.grossWage}</TableCell>

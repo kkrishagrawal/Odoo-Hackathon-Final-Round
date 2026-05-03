@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUser, requireRoles } from "@/lib/auth";
 import { UserRole, PayslipStatus } from "@/lib/generated/prisma/client";
 import { computeSalaryBreakdown, scaleToPayableDays } from "@/lib/payroll";
 
 export async function POST(req: NextRequest) {
-  // Auth (enable this later)
-  // const user = await getUser(req);
-  // const authError = requireRoles(user, [UserRole.ADMIN, UserRole.PAYROLL_OFFICER]);
-  // if (authError) return authError;
-
   const { payrunId } = await req.json();
   if (!payrunId) {
     return NextResponse.json({ error: "payrunId required" }, { status: 400 });
@@ -78,9 +72,6 @@ export async function POST(req: NextRequest) {
         (!l.endDate || l.endDate >= startDate)
     );
 
-    // Compute breakdown (you should handle unpaid leaves inside this)
-    // Replace the computeSalaryBreakdown call and everything around it with:
-
     const totalWorkingDays = countWorkingDays(payrun.year, payrun.month);
 
     const attendanceDays = attendance.filter(a => a.checkIn !== null).length;
@@ -106,7 +97,7 @@ export async function POST(req: NextRequest) {
         paidLeaveDays,
         unpaidLeaveDays,
         totalPayableDays,
-        monthlyWage: scaled.monthlyWage,
+        monthlyWage: fullBreakdown.monthlyWage,
         basicSalary: scaled.basicSalary,
         hra: scaled.hra,
         standardAllowance: scaled.standardAllowance,

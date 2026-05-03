@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useSalaryInfo, useSaveSalaryInfo, SalaryInfoData } from "@/hooks/useSalaryInfo";
 import { Button } from "@/components/ui/button";
 import { usePayrollConfig } from "@/hooks/usePayrollConfig";
+import { AttendanceRecord } from "../attendance/AttendanceContext";
+import { useQuery } from "@tanstack/react-query";
 
 interface Props {
     userId: string;
@@ -67,6 +69,46 @@ export function SalaryInfoTab({ userId, canEdit }: Props) {
     const save = useSaveSalaryInfo(userId);
     const [isEditing, setIsEditing] = useState(false);
     const [form, setForm] = useState<Omit<SalaryInfoData, "userId">>(DEFAULTS);
+    const today = new Date();
+    const month = today.getMonth() + 1;
+    const year = today.getFullYear();
+
+    const { data: attendanceRecords = [] } = useQuery({
+        queryKey: ["attendance", userId, month, year],
+        queryFn: async () => {
+            const res = await fetch(
+                `/api/attendance?userId=${userId}&month=${month}&year=${year}`
+            );
+            if (!res.ok) throw new Error("Failed to fetch attendance");
+
+            const data = await res.json();
+
+            return data.records || data.attendance || data || [];
+        },
+    });
+
+    const monthlyBreakMs = useMemo(() => {
+        if (!attendanceRecords || attendanceRecords.length === 0) return 0;
+
+        return attendanceRecords.reduce((total: number, record: { breaks: { pausedAt: string; resumedAt: string | null; }[]; }) => {
+            const breaks = (record.breaks as { pausedAt: string; resumedAt: string | null }[]) || [];
+
+            const recordBreakMs = breaks.reduce((acc, b) => {
+                const start = new Date(b.pausedAt).getTime();
+                const end = b.resumedAt ? new Date(b.resumedAt).getTime() : Date.now();
+                return acc + (end - start);
+            }, 0);
+
+            return total + recordBreakMs;
+        }, 0);
+    }, [attendanceRecords]);
+
+    const formattedMonthlyBreak = useMemo(() => {
+        const totalSec = Math.floor(monthlyBreakMs / 1000);
+        const h = Math.floor(totalSec / 3600);
+        const m = Math.floor((totalSec % 3600) / 60);
+        return `${h}h ${m}m`;
+    }, [monthlyBreakMs]);
 
     // Sync fetched data into form state
     useEffect(() => {
@@ -213,9 +255,8 @@ export function SalaryInfoTab({ userId, canEdit }: Props) {
                             type="number"
                             step="0.5"
                             className={inputClass()}
-                            value={form.breakTimeHrs}
-                            readOnly={!isEditing}
-                            onChange={(e) => set("breakTimeHrs", e.target.value)}
+                            value={formattedMonthlyBreak}
+                            readOnly
                         />
                     </Row>
                 </div>

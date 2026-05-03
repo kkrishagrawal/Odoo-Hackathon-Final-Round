@@ -93,6 +93,38 @@ interface Props {
     payslipId: string | null;
 }
 
+function countWorkingDays(year: number, month: number) {
+    const days = new Date(year, month, 0).getDate();
+    let count = 0;
+
+    for (let d = 1; d <= days; d++) {
+        const dow = new Date(year, month - 1, d).getDay();
+        if (dow !== 0 && dow !== 6) count++; // exclude weekends
+    }
+
+    return count;
+}
+
+function getUnpaidLeaveAmount(
+    p: any,
+    month: number,
+    year: number
+) {
+    const totalWorkingDays = countWorkingDays(year, month);
+
+    const payableDays = (p.attendanceDays || 0) + (p.paidLeaveDays || 0);
+
+    if (!payableDays || !totalWorkingDays) return 0;
+
+    // reverse scaling
+    const fullGross =
+        p.grossWage * (totalWorkingDays / payableDays);
+
+    const perDay = fullGross / totalWorkingDays;
+
+    return Math.round(perDay * (p.unpaidLeaveDays || 0));
+}
+
 export default function PayslipDetail({ payslipId }: Props) {
     const queryClient = useQueryClient();
 
@@ -132,7 +164,6 @@ export default function PayslipDetail({ payslipId }: Props) {
     });
 
     const busy = compute.isPending || validate.isPending || cancel.isPending;
-    const unpaidLeaveDeduction = (data?.payslip.monthlyWage ?? 0) - (data?.payslip.grossWage ?? 0);
 
     return (
         <div className="max-w-3xl mx-auto py-6">
@@ -311,7 +342,8 @@ export default function PayslipDetail({ payslipId }: Props) {
                                         <TableRow className="text-muted-foreground">
                                             <TableCell>Unpaid Leave</TableCell>
                                             <TableCell>{fmt(p.unpaidLeaveDays)}</TableCell>
-                                            <TableCell className="text-right">—</TableCell>
+                                            <TableCell className="text-right">₹ {fmt(getUnpaidLeaveAmount(p, p.payrun.month, p.payrun.year))}
+                                            </TableCell>
                                         </TableRow>
                                     )}
 
@@ -374,7 +406,7 @@ export default function PayslipDetail({ payslipId }: Props) {
                                         <SalaryRow
                                             label="Unpaid Leave Deduction"
                                             rate={`${fmt(p.unpaidLeaveDays)} days`}
-                                            amount={unpaidLeaveDeduction}
+                                            amount={getUnpaidLeaveAmount(p, p.payrun.month, p.payrun.year)}
                                             negative
                                         />
                                     )}

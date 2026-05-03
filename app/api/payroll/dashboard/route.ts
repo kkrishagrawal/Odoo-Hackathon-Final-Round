@@ -11,15 +11,6 @@ import { prisma } from "@/lib/prisma";
 import { UserRole } from "@/lib/generated/prisma/client";
 
 export async function GET(req: NextRequest) {
-  // Auth guard
-  // TODO: UNCOMMENT when JWT is ready:
-  //
-  // const user = await getUser(req);
-  // const authError = requireRoles(user, [UserRole.ADMIN, UserRole.PAYROLL_OFFICER]);
-  // if (authError) return authError;
-  // const companyId = user!.companyId;
-  //
-  // TODO: remove before production:
   const companyId = "cmoo5tzca00020cu1yq9v6fso";
 
   const { searchParams } = new URL(req.url);
