@@ -1,7 +1,6 @@
 "use client";
 
 import Sidebar from "@/components/Sidebar";
-import TopBar from "@/components/TopBar";
 import { useAuth } from "@/components/auth/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";

@@ -66,9 +66,20 @@ export default function ConfigurationTab(
 
 
   const handleSave = () => {
-    if (form) mutation.mutate(form);
-  };
+    if (!form) return;
 
+    if (
+      form.pfEmployeePct < 12 ||
+      form.pfEmployeePct > 20 ||
+      form.pfEmployerPct < 12 ||
+      form.pfEmployerPct > 20
+    ) {
+      toast.error("PF values must be between 12% and 20%");
+      return;
+    }
+
+    mutation.mutate(form);
+  };
 
   const handleCancel = () => {
     setEdits({});
@@ -114,6 +125,8 @@ export default function ConfigurationTab(
           value={form.pfEmployeePct}
           editable={isEditing}
           onChange={(v) => set("pfEmployeePct", v)}
+          min={12}
+          max={20}
         />
 
         <Field
@@ -121,6 +134,8 @@ export default function ConfigurationTab(
           value={form.pfEmployerPct}
           editable={isEditing}
           onChange={(v) => set("pfEmployerPct", v)}
+          min={12}
+          max={20}
         />
 
         <Field
@@ -140,11 +155,15 @@ function Field({
   value,
   editable,
   onChange,
+  min,
+  max
 }: {
   label: string;
   value: number;
   editable: boolean;
   onChange?: (v: string) => void;
+  min?: number;
+  max?: number;
 }) {
   return (
     <div className="flex items-center gap-4">
@@ -156,6 +175,8 @@ function Field({
         type="number"
         value={value}
         readOnly={!editable}
+        min={min}
+        max={max}
         onChange={(e) => onChange?.(e.target.value)}
         className={`border rounded px-3 py-1 text-sm w-full text-right ${editable ? "bg-background" : "bg-muted"
           }`}

@@ -42,12 +42,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Company not found" }, { status: 404 });
   }
 
-  const config = {
-    pfEmployeePct: Number(company.pfEmployeePct),
-    pfEmployerPct: Number(company.pfEmployerPct),
-    professionalTax: Number(company.professionalTax),
-  };
-
   // Month boundaries (IMPORTANT for attendance + leave filtering)
   const startDate = new Date(payrun.year, payrun.month - 1, 1);
   const endDate = new Date(payrun.year, payrun.month, 0);
@@ -57,6 +51,15 @@ export async function POST(req: NextRequest) {
     const info = user.salaryInfo;
 
     if (!info) continue;
+    const pfEmployeePct =
+      info.pfEmployeePctOverride ??
+      Number(company.pfEmployeePct);
+
+    const config = {
+      pfEmployeePct,
+      pfEmployerPct: Number(company.pfEmployerPct),
+      professionalTax: Number(company.professionalTax),
+    };
 
     const attendance = user.attendanceRecords.filter(
       (a) => a.date >= startDate && a.date <= endDate

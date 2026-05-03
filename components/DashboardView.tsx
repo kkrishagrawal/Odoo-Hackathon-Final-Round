@@ -5,6 +5,7 @@ import EmployeeCard, { EmployeeStatus } from "@/components/EmployeeCard";
 import { useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthContext";
+import TopBar from "./TopBar";
 
 interface Employee {
   id: string;
@@ -141,6 +142,7 @@ function DashboardContent() {
 export default function DashboardView() {
   return (
     <Suspense fallback={<div className="p-8">Loading dashboard...</div>}>
+      <TopBar />
       <DashboardContent />
     </Suspense>
   );

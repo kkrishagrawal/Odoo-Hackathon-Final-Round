@@ -35,8 +35,12 @@ export async function POST(
   });
   if (!company) return NextResponse.json({ error: "Company not found" }, { status: 404 });
 
+  const pfEmployeePct =
+    info.pfEmployeePctOverride ??
+    Number(company.pfEmployeePct);
+
   const config = {
-    pfEmployeePct: Number(company.pfEmployeePct),
+    pfEmployeePct,
     pfEmployerPct: Number(company.pfEmployerPct),
     professionalTax: Number(company.professionalTax),
   };

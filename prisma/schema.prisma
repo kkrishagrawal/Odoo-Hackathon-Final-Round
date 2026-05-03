@@ -170,6 +170,7 @@ model SalaryInfo {
   standardAllowance Decimal @default(0) @db.Decimal(12, 2) // fixed ₹ amount
   bonusPct          Decimal @default(8.33) @db.Decimal(5, 2) // % of basic
   ltaPct            Decimal @default(8.33) @db.Decimal(5, 2) // % of basic
+  pfEmployeePctOverride Float? //nullable, so that the company default can be used if this isn't set
   // fixedAllowance = wage - sum of all other components (computed on the fly)
 }
 
@@ -288,7 +289,7 @@ model Payslip {
   lta               Decimal @db.Decimal(12, 2)
   fixedAllowance    Decimal @db.Decimal(12, 2)
   grossWage         Decimal @db.Decimal(12, 2)
-
+  unpaidLeaveDeduction  Decimal @default(0) @db.Decimal(12, 2)
   // Deductions snapshot (₹)
   pfEmployee      Decimal @db.Decimal(12, 2)
   pfEmployer      Decimal @db.Decimal(12, 2)

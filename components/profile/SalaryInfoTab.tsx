@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useSalaryInfo, useSaveSalaryInfo, SalaryInfoData } from "@/hooks/useSalaryInfo";
 import { Button } from "@/components/ui/button";
 import { usePayrollConfig } from "@/hooks/usePayrollConfig";
-import { AttendanceRecord } from "../attendance/AttendanceContext";
 import { useQuery } from "@tanstack/react-query";
 
 interface Props {
@@ -135,7 +134,8 @@ export function SalaryInfoTab({ userId, canEdit }: Props) {
         );
         const fixedAllowancePct = (fixedAllowance / wage * 100);
         const grossWage = round2(basic + hra + stdAllowance + bonus + lta + fixedAllowance);
-        const pfEmployee = round2((basic * config.pfEmployeePct) / 100);
+        const pfEmployeePct = form.pfEmployeePctOverride ?? config.pfEmployeePct;
+        const pfEmployee = round2((basic * pfEmployeePct) / 100);
         const pfEmployer = round2((basic * config.pfEmployerPct) / 100);
         const professionalTax = config.professionalTax;
         const totalDeductions = round2(pfEmployee + pfEmployer + professionalTax);
@@ -187,6 +187,9 @@ export function SalaryInfoTab({ userId, canEdit }: Props) {
         );
     }
 
+    const pfEmployeePct = form.pfEmployeePctOverride ?? config.pfEmployeePct;
+    const isInvalidPf = pfEmployeePct < 12;
+
     return (
         <div className="space-y-10">
             {/* Action Buttons */}
@@ -204,7 +207,7 @@ export function SalaryInfoTab({ userId, canEdit }: Props) {
                             <Button
                                 onClick={handleSave}
                                 className="px-4 py-1.5 rounded-md bg-[#A463B0] hover:bg-[#8A5294] text-white text-sm"
-                                disabled={save.isPending || isInvalidStdAllowance}
+                                disabled={save.isPending || isInvalidStdAllowance || isInvalidPf}
                             >
                                 {save.isPending ? "Saving…" : "Save Changes"}
                             </Button>
@@ -298,7 +301,17 @@ export function SalaryInfoTab({ userId, canEdit }: Props) {
                             <h3 className="text-sm font-semibold">Provident Fund & Deductions</h3>
 
                             {/* PF */}
-                            <BreakdownRow label="PF Employee" value={computed.pfEmployee} percent={config.pfEmployeePct} />
+                            <BreakdownRow
+                                label="PF Employee %"
+                                value={form.pfEmployeePctOverride ?? config.pfEmployeePct}
+                                editable={isEditing}
+                                onEdit={(v) => set("pfEmployeePctOverride", v)}
+                            />
+                            {isInvalidPf && (
+                                <p className="text-xs text-red-500 text-right">
+                                    PF Employee contribution cannot be less than 12%
+                                </p>
+                            )}
                             <BreakdownRow label="PF Employer" value={computed.pfEmployer} percent={config.pfEmployerPct} />
 
                             {/* Deductions */}

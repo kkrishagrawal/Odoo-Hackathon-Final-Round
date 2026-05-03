@@ -10,6 +10,7 @@ export interface SalaryInfoData {
   standardAllowance: number;
   bonusPct: number;
   ltaPct: number;
+  pfEmployeePctOverride?: number;
 }
 
 async function fetchSalaryInfo(userId: string): Promise<{ salaryInfo: SalaryInfoData | null }> {
