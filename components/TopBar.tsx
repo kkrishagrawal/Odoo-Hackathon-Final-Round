@@ -61,8 +61,8 @@ function TopBarContent() {
     await logout();
   };
 
-  // Determine profile route based on the current role path
-  const rolePath = pathname?.split('/')[1] || "employee";
+  // Determine profile route based on the user's role instead of the URL
+  const rolePath = user ? getRolePath(user.role) : "employee";
   const profileLink = `/${rolePath}/profile`;
 
   // User initials for avatar

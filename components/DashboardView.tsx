@@ -4,7 +4,7 @@ import React, { Suspense, useEffect, useState } from "react";
 import EmployeeCard, { EmployeeStatus } from "@/components/EmployeeCard";
 import { useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
-import { useAuth } from "@/components/auth/AuthContext";
+import { useAuth, getRolePath } from "@/components/auth/AuthContext";
 
 interface Employee {
   id: string;
@@ -71,7 +71,7 @@ function DashboardContent() {
       mapStatus(emp.status).toLowerCase().includes(query)
   );
 
-  const currentRole = pathname?.split('/')[1] || "admin";
+  const currentRole = user ? getRolePath(user.role) : "admin";
   const isEmployeeRole = currentRole === "employee";
 
   return (
